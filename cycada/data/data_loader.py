@@ -8,8 +8,7 @@ import torch
 import torch.utils.data as data
 import torch.nn as nn
 from torchvision import datasets, transforms
-
-from ..util import to_tensor_raw
+from util import to_tensor_raw
 
 def load_data(name, dset, batch=64, rootdir='', num_channels=3,
         image_size=32, download=True, kwargs={}):
