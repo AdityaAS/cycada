@@ -13,9 +13,10 @@ __all__ = ['DRN', 'drn26', 'drn42', 'drn58']
 
 
 model_urls = {
-    'drn26': 'https://tigress-web.princeton.edu/~fy/drn/models/drn26-ddedf421.pth',
+    #'drn26': 'https://tigress-web.princeton.edu/~fy/drn/models/drn26-ddedf421.pth',
     'drn42': 'https://tigress-web.princeton.edu/~fy/drn/models/drn42-9d336e8c.pth',
-    'drn58': 'https://tigress-web.princeton.edu/~fy/drn/models/drn58-0a53a92c.pth'
+    'drn58': 'https://tigress-web.princeton.edu/~fy/drn/models/drn58-0a53a92c.pth',
+    'drn26': 'https://people.eecs.berkeley.edu/~jhoffman/cycada/drn26-gta5-iter115000.pth'
 }
 
 

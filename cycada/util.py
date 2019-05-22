@@ -74,7 +74,9 @@ def fast_hist(a, b, n):
 
 def check_label(label, num_cls):
     "Check that no labels are out of range"
+    print(label.size())
     label_classes = np.unique(label.numpy().flatten())
+    print(label_classes)
     label_classes = label_classes[label_classes < 255]
     if len(label_classes) == 0:
         print('All ignore labels')

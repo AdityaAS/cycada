@@ -4,7 +4,8 @@ import os.path
 from collections import deque
 import itertools
 from datetime import datetime
-
+import sys
+sys.path.append('.')
 import click
 import numpy as np
 import torch
@@ -99,7 +100,7 @@ from cycada.metrics import seg_accuracy
 @click.option('--weights_init', type=click.Path(exists=True))
 @click.option('--model', default='fcn8s', type=click.Choice(models.keys()))
 @click.option('--lsgan/--no_lsgan', default=False)
-@click.option('--num_cls', type=int, default=19)
+@click.option('--num_cls', type=int, default=2)
 @click.option('--gpu', default='0')
 @click.option('--max_iter', default=10000)
 @click.option('--lambda_d', default=1.0)
@@ -142,6 +143,8 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
         net_src = get_model(model, num_cls=num_cls, pretrained=True, 
                 weights_init=weights_init, output_last_ft=discrim_feat)
         net_src.eval()
+
+    print("GOT MODEL")
 
     odim = 1 if lsgan else 2
     idim = num_cls if not discrim_feat else 4096

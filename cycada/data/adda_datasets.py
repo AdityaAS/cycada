@@ -3,10 +3,10 @@ import os.path
 from PIL import Image
 import torch.utils.data
 
-from .data_loader import get_transform_dataset
-from ..util import to_tensor_raw
-from ..transforms import RandomCrop
-from ..transforms import augment_collate
+from cycada.data.data_loader import get_transform_dataset
+from cycada.util import to_tensor_raw
+from cycada.transforms import RandomCrop
+from cycada.transforms import augment_collate
 
 class AddaDataLoader(object):
     def __init__(self, net_transform, dataset, rootdir, downscale, crop_size=None, 

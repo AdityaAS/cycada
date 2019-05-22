@@ -6,10 +6,10 @@ import torch.utils.data as data
 from glob import glob
 from PIL import Image
 
-from data.data_loader import register_data_params, register_dataset_obj
-from data.data_loader import DatasetParams
+from cycada.data.data_loader import register_data_params, register_dataset_obj
+from cycada.data.data_loader import DatasetParams
 
-@register_data_params('opendr')
+@register_data_params('singleview_opendr_color_100k_copy')
 class OpenDRParams(DatasetParams):
     num_channels = 3
     image_size = 480
@@ -17,7 +17,7 @@ class OpenDRParams(DatasetParams):
     num_cls = 2
     target_transform = None
 
-@register_dataset_obj('opendr')
+@register_dataset_obj('singleview_opendr_color_100k_copy')
 class OpenDR(data.Dataset):
 
     def __init__(self, root, num_cls=2, split='train', remap_labels=True, 
@@ -25,6 +25,7 @@ class OpenDR(data.Dataset):
         self.root = root
         self.split = split
         self.remap_labels = remap_labels
+        self.name = "singleview_opendr_100k_copy"
         self.ids = self.collect_ids()
         self.transform = transform
         self.target_transform = target_transform
@@ -48,6 +49,9 @@ class OpenDR(data.Dataset):
         filename = id + ".png"
         return os.path.join(self.l_path, filename)
 
+    def __iter__(self):
+        return self
+
     def __getitem__(self, index):
         id = self.ids[index]
         img_path = self.img_path(id)
@@ -56,12 +60,7 @@ class OpenDR(data.Dataset):
         if self.transform is not None:
             img = self.transform(img)
         target = Image.open(label_path)
-        if self.remap_labels:
-            target = np.asarray(target)
-            target = remap_labels_to_train_ids(target)
-            target = Image.fromarray(target, 'L')
-        if self.target_transform is not None:
-            target = self.target_transform(target)
+        target = np.asarray(target)*255
         return img, target
 
     def __len__(self):

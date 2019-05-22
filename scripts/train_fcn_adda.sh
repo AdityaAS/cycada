@@ -23,9 +23,9 @@ discrim='discrim_score'
 ########
 # Data #
 ########
-src='gta5'
-tgt='cityscapes'
-datadir='/home/ubuntu/cycada_release/train_data/trainB'
+src='singleview_opendr_color_100k_copy'
+tgt='singleview_blender_100k_visibility'
+datadir='/home/ubuntu/anthro-efs/anthro-backup-virginia/data/HMR_baby/datasets'
 
 
 resdir="results/${src}_to_${tgt}/adda_sgd/${weight_share}_nolsgan_${discrim}"
