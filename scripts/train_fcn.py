@@ -57,16 +57,16 @@ def main(output, dataset, datadir, batch_size, lr, step, iterations,
     transform = []
     target_transform = []
     if downscale is not None:
-        transform.append(torchvision.transforms.Scale(480 // downscale))
+        transform.append(torchvision.transforms.Resize(480 // downscale))
         target_transform.append(
-            torchvision.transforms.Scale(480 // downscale,
+            torchvision.transforms.Resize(480 // downscale,
                                          interpolation=Image.NEAREST))
     transform.extend([
-        torchvision.transforms.Scale(480),
+        torchvision.transforms.Resize(480),
         net.transform
         ])
     target_transform.extend([
-        torchvision.transforms.Scale(480, interpolation=Image.NEAREST),
+        torchvision.transforms.Resize(480, interpolation=Image.NEAREST),
         to_tensor_raw
         ])
     transform = torchvision.transforms.Compose(transform)
@@ -107,7 +107,7 @@ def main(output, dataset, datadir, batch_size, lr, step, iterations,
         
         # backward pass
         loss.backward()
-        losses.append(loss.data[0])
+        losses.append(loss.item())
         
         # step gradients
         opt.step()

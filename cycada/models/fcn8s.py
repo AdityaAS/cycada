@@ -66,10 +66,10 @@ class VGG16_FCN8s(nn.Module):
         self.upscore8 = Bilinear(8, num_cls)
         self.score_pool4 = nn.Conv2d(512, num_cls, 1)
         for param in self.score_pool4.parameters():
-            init.constant(param, 0)
+            init.constant_(param, 0)
         self.score_pool3 = nn.Conv2d(256, num_cls, 1)
         for param in self.score_pool3.parameters():
-            init.constant(param, 0)
+            init.constant_(param, 0)
         
         if pretrained:
             if weights_init is not None:

@@ -5,7 +5,6 @@ def supervised_loss(score, label, weights=None):
     loss_fn_ = torch.nn.NLLLoss(weight=weights, size_average=True, 
             ignore_index=255)
     label = label.long()
-    print(label.dtype)
     loss = loss_fn_(F.log_softmax(score, dim=1), label)
     return loss
    
