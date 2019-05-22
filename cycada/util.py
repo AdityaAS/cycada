@@ -87,3 +87,16 @@ def check_label(label, num_cls):
         print(label_classes)
         return False
     return True
+
+def roundrobin_infinite(*loaders):
+    if not loaders:
+        return
+    iters = [iter(loader) for loader in loaders]
+    while True:
+        for i in range(len(iters)):
+            it = iters[i]
+            try:
+                yield next(it)
+            except StopIteration:
+                iters[i] = iter(loaders[i])
+                yield next(iters[i])

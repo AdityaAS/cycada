@@ -39,8 +39,8 @@ class RandomCrop(object):
         if w == tw and h == th:
             return tensors
         #print("SO RANDOM",w,th)
-        x1 = random.randint(0, -w + tw)
-        y1 = random.randint(0, -h + th)
+        x1 = random.randint(0, w - tw)
+        y1 = random.randint(0, h - th)
         for tensor in tensors:
             output.append(tensor[..., y1:y1 + th, x1:x1 + tw].contiguous())
         return output

@@ -1,20 +1,22 @@
-gpu=1
-data=cityscapes 
-data2=cyclegta5
-model=drn42
+gpu=0
+data="singleview_opendr_color_100k_copy"
+datadir='/home/ubuntu/anthro-efs/anthro-backup-virginia/data/HMR_baby/datasets'
+data2=opendr
+model=fcn8s
 
 
-crop=768
-datadir=/x
+crop=240
+#datadir=/x
 batch=2
 iterations=100000
 lr=1e-3
 momentum=0.99
-num_cls=19
+num_cls=2
 
 #outdir=results/${data}-${data2}/${model}
 outdir=results/${data}/${data}_${model}
 mkdir -p results/${data} 
+
 
 python scripts/train_fcn.py ${outdir} --model ${model} \
     --num_cls ${num_cls} --gpu ${gpu} \

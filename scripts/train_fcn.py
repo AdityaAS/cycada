@@ -1,3 +1,5 @@
+import sys
+sys.path.append('./')
 import logging
 import os.path
 from collections import deque
@@ -11,39 +13,16 @@ import torchvision
 from tensorboardX import SummaryWriter
 from PIL import Image
 from torch.autograd import Variable
-
+print(os.getcwd())
 from cycada.data.data_loader import get_fcn_dataset as get_dataset
 from cycada.models import get_model
 from cycada.models.models import models
 from cycada.transforms import augment_collate
 from cycada.util import config_logging
 from cycada.util import to_tensor_raw
+from cycada.util import roundrobin_infinite
 from cycada.tools.util import make_variable
-
-
-def to_tensor_raw(im):
-    return torch.from_numpy(np.array(im, np.int64, copy=False))
-
-
-def roundrobin_infinite(*loaders):
-    if not loaders:
-        return
-    iters = [iter(loader) for loader in loaders]
-    while True:
-        for i in range(len(iters)):
-            it = iters[i]
-            try:
-                yield next(it)
-            except StopIteration:
-                iters[i] = iter(loaders[i])
-                yield next(iters[i])
-
-def supervised_loss(score, label, weights=None):
-    loss_fn_ = torch.nn.NLLLoss2d(weight=weights, size_average=True, 
-            ignore_index=255)
-    loss = loss_fn_(F.log_softmax(score), label)
-    return loss
- 
+from cycada.loss_fns import supervised_loss
 
 @click.command()
 @click.argument('output')
@@ -58,10 +37,10 @@ def supervised_loss(score, label, weights=None):
 @click.option('--downscale', type=int)
 @click.option('--augmentation/--no-augmentation', default=False)
 @click.option('--fyu/--torch', default=False)
-@click.option('--crop_size', default=720)
+@click.option('--crop_size', default=120)
 @click.option('--weights', type=click.Path(exists=True))
 @click.option('--model', default='fcn8s', type=click.Choice(models.keys()))
-@click.option('--num_cls', default=19, type=int)
+@click.option('--num_cls', default=2, type=int)
 @click.option('--gpu', default='0')
 def main(output, dataset, datadir, batch_size, lr, step, iterations, 
         momentum, snapshot, downscale, augmentation, fyu, crop_size, 
@@ -73,21 +52,21 @@ def main(output, dataset, datadir, batch_size, lr, step, iterations,
     
     logdir = 'runs/{:s}/{:s}'.format(model, '-'.join(dataset))
     writer = SummaryWriter(log_dir=logdir)
-    net = get_model(model, num_cls=num_cls, finetune=True)
+    net = get_model(model, num_cls=num_cls)
     net.cuda()
     transform = []
     target_transform = []
     if downscale is not None:
-        transform.append(torchvision.transforms.Scale(1024 // downscale))
+        transform.append(torchvision.transforms.Scale(480 // downscale))
         target_transform.append(
-            torchvision.transforms.Scale(1024 // downscale,
+            torchvision.transforms.Scale(480 // downscale,
                                          interpolation=Image.NEAREST))
     transform.extend([
-        torchvision.transforms.Scale(1024),
+        torchvision.transforms.Scale(480),
         net.transform
         ])
     target_transform.extend([
-        torchvision.transforms.Scale(1024, interpolation=Image.NEAREST),
+        torchvision.transforms.Scale(480, interpolation=Image.NEAREST),
         to_tensor_raw
         ])
     transform = torchvision.transforms.Compose(transform)
