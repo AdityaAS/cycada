@@ -67,3 +67,21 @@ def step_lr(optimizer, mult):
     for param_group in optimizer.param_groups:
         lr = param_group['lr']
         param_group['lr'] = lr * mult
+
+def fast_hist(a, b, n):
+    k = (a >= 0) & (a < n)
+    return np.bincount(n * a[k].astype(int) + b[k], minlength=n**2).reshape(n,n)
+
+def check_label(label, num_cls):
+    "Check that no labels are out of range"
+    label_classes = np.unique(label.numpy().flatten())
+    label_classes = label_classes[label_classes < 255]
+    if len(label_classes) == 0:
+        print('All ignore labels')
+        return False
+    class_too_large = label_classes.max() > num_cls
+    if class_too_large or label_classes.min() < 0:
+        print('Labels out of bound')
+        print(label_classes)
+        return False
+    return True

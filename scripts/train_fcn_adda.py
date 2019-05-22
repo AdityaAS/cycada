@@ -20,65 +20,68 @@ from cycada.data.adda_datasets import AddaDataLoader
 from cycada.models import get_model
 from cycada.models.models import models
 from cycada.models import VGG16_FCN8s, Discriminator
-from cycada.util import config_logging
+from cycada.util import config_logging, check_label
 from cycada.util import to_tensor_raw
+from cycada.util import fast_hist
 from cycada.tools.util import make_variable
+from cycada.loss_fns import supervised_loss, discriminator_loss
+from cycada.metrics import seg_accuracy
 
-def check_label(label, num_cls):
-    "Check that no labels are out of range"
-    label_classes = np.unique(label.numpy().flatten())
-    label_classes = label_classes[label_classes < 255]
-    if len(label_classes) == 0:
-        print('All ignore labels')
-        return False
-    class_too_large = label_classes.max() > num_cls
-    if class_too_large or label_classes.min() < 0:
-        print('Labels out of bound')
-        print(label_classes)
-        return False
-    return True
+# def check_label(label, num_cls):
+#     "Check that no labels are out of range"
+#     label_classes = np.unique(label.numpy().flatten())
+#     label_classes = label_classes[label_classes < 255]
+#     if len(label_classes) == 0:
+#         print('All ignore labels')
+#         return False
+#     class_too_large = label_classes.max() > num_cls
+#     if class_too_large or label_classes.min() < 0:
+#         print('Labels out of bound')
+#         print(label_classes)
+#         return False
+#     return True
 
 
 
-def forward_pass(net, discriminator, im, requires_grad=False, discrim_feat=False):
-    if discrim_feat:
-        score, feat = net(im)
-        dis_score = discriminator(feat)
-    else:
-        score = net(im)
-        dis_score = discriminator(score)
-    if not requires_grad:
-        score = Variable(score.data, requires_grad=False)
+# def forward_pass(net, discriminator, im, requires_grad=False, discrim_feat=False):
+#     if discrim_feat:
+#         score, feat = net(im)
+#         dis_score = discriminator(feat)
+#     else:
+#         score = net(im)
+#         dis_score = discriminator(score)
+#     if not requires_grad:
+#         score = Variable(score.data, requires_grad=False)
         
-    return score, dis_score
+#     return score, dis_score
 
-def supervised_loss(score, label, weights=None):
-    loss_fn_ = torch.nn.NLLLoss(weight=weights, size_average=True, 
-            ignore_index=255)
-    loss = loss_fn_(F.log_softmax(score, dim=1), label)
-    return loss
+# def supervised_loss(score, label, weights=None):
+#     loss_fn_ = torch.nn.NLLLoss(weight=weights, size_average=True, 
+#             ignore_index=255)
+#     loss = loss_fn_(F.log_softmax(score, dim=1), label)
+#     return loss
    
-def discriminator_loss(score, target_val, lsgan=False):
-    if lsgan:
-        loss = 0.5 * torch.mean((score - target_val)**2)
-    else:
-        _,_,h,w = score.size()
-        target_val_vec = Variable(target_val * torch.ones(1,h,w),requires_grad=False).long().cuda()
-        loss = supervised_loss(score, target_val_vec)
-    return loss
+# def discriminator_loss(score, target_val, lsgan=False):
+#     if lsgan:
+#         loss = 0.5 * torch.mean((score - target_val)**2)
+#     else:
+#         _,_,h,w = score.size()
+#         target_val_vec = Variable(target_val * torch.ones(1,h,w),requires_grad=False).long().cuda()
+#         loss = supervised_loss(score, target_val_vec)
+#     return loss
 
-def fast_hist(a, b, n):
-    k = (a >= 0) & (a < n)
-    return np.bincount(n * a[k].astype(int) + b[k], minlength=n**2).reshape(n,n)
+# def fast_hist(a, b, n):
+#     k = (a >= 0) & (a < n)
+#     return np.bincount(n * a[k].astype(int) + b[k], minlength=n**2).reshape(n,n)
 
-def seg_accuracy(score, label, num_cls):
-    _, preds = torch.max(score.data, 1)
-    hist = fast_hist(label.cpu().numpy().flatten(),
-            preds.cpu().numpy().flatten(), num_cls)
-    intersections = np.diag(hist)
-    unions = (hist.sum(1) + hist.sum(0) - np.diag(hist) + 1e-8) * 100
-    acc = np.diag(hist).sum() / hist.sum()
-    return intersections, unions, acc
+# def seg_accuracy(score, label, num_cls):
+#     _, preds = torch.max(score.data, 1)
+#     hist = fast_hist(label.cpu().numpy().flatten(),
+#             preds.cpu().numpy().flatten(), num_cls)
+#     intersections = np.diag(hist)
+#     unions = (hist.sum(1) + hist.sum(0) - np.diag(hist) + 1e-8) * 100
+#     acc = np.diag(hist).sum() / hist.sum()
+#     return intersections, unions, acc
 
 @click.command()
 @click.argument('output')
