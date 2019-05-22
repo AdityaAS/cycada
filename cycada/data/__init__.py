@@ -4,6 +4,6 @@ import sys
 #from data import usps
 #from data import mnist
 #from data import cyclegan
-#from data import gta5, cityscapes, cyclegta5
+from cycada.data import gta5, cityscapes, cyclegta5
 #from data import adda_datasets
-from data import blender, opendr 
+from cycada.data import blender, opendr 
