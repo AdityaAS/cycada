@@ -114,7 +114,7 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
     opt = torch.optim.SGD(net.parameters(), lr=lr, momentum=momentum,
                           weight_decay=0.0005)
 
-    
+
     if augmentation:
         collate_fn = lambda batch: augment_collate(batch, crop=crop_size, flip=True)
     else:
@@ -144,8 +144,10 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
         if phase == 'train':
             net.train()
             for im, label in train_loader:
+
                 # Clear out gradients
                 opt.zero_grad()
+                
                 # load data/label
                 im = make_variable(im, requires_grad=False)
                 label = make_variable(label, requires_grad=False)
@@ -165,6 +167,7 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
                 # step gradients
                 opt.step()
 
+        # Run val epoch for every 5 train epochs
         if epochs%5 == 0:
             net.eval()
             for im, label in val_loader:
@@ -175,7 +178,8 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
                 # forward pass and compute loss
                 preds = net(im)
                 loss = supervised_loss(preds, label)
-                
+            
+        # Run test epoch for every 50 train epochs
         if epochs%50 == 0:
             net.eval()
             for im, label in val_loader:
@@ -187,21 +191,25 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
                 preds = net(im)
                 loss = supervised_loss(preds, label)
 
-
         # log results
         if epochs%1 == 0:
             logging.info('Iteration {}:\t{}'
                             .format(iteration, np.mean(losses)))
             writer.add_scalar('loss', np.mean(losses), iteration)
+
         iteration += 1
+
         if step is not None and epochs % step == 0:
             logging.info('Decreasing learning rate by 0.1.')
             step_lr(optimizer, 0.1)
+
         if epochs % snapshot == 0:
             torch.save(net.state_dict(),
                         '{}-iter{}.pth'.format(output, iteration))
+            
         if epochs % 10 == 0:
             continue
+
         if epochs == max_epochs - 1:
             logging.info('Optimization complete.')
             break           
