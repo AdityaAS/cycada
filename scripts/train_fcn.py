@@ -160,7 +160,7 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
                 
         if epochs%50 == 0:
             net.eval()
-            for im, label in val_loader:
+            for im, label in test_loader:
                 # load data/label
                 im = make_variable(im, requires_grad=False)
                 label = make_variable(label, requires_grad=False)

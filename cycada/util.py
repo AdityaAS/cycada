@@ -101,3 +101,6 @@ def roundrobin_infinite(*loaders):
             except StopIteration:
                 iters[i] = iter(loaders[i])
                 yield next(iters[i])
+
+def get_pred(pred):
+    return torch.max(preds, dim=1)[1].long()
