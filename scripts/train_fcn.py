@@ -84,36 +84,37 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
     os.environ['CUDA_VISIBLE_DEVICES'] = gpu
     config_logging()
     
+    # Initialize SummaryWriter - For tensorboard visualizations
     logdir = 'runs/{:s}/{:s}'.format(model, '-'.join(dataset))
     writer = SummaryWriter(log_dir=logdir)
-    net = get_model(model, num_cls=num_cls)
-    #print("Model Parameter{}".format(net.parameters))
 
+    # Get appropriate model based on cmd line architecture
+    net = get_model(model, num_cls=num_cls)
+    # Get appropriate transforms to apply to input image and target segmask
     transform, target_transform = compose_transforms(downscale)
+
 
     model_parameters = filter(lambda p: p.requires_grad, net.parameters())
     params = sum([np.prod(p.size()) for p in model_parameters])
-    #print("NUM params {}".format(params))
     net.cuda()
     
     dataset = dataset[0]
 
     datasets_train = get_dataset(dataset, os.path.join(datadir, dataset), split='train',transform=transform,
                         target_transform=target_transform)
-                        #for name in dataset]
 
     datasets_val = get_dataset(dataset, os.path.join(datadir, dataset), split='val',transform=transform,
                         target_transform=target_transform)
-                        #for name in dataset]
 
     datasets_test = get_dataset(dataset, os.path.join(datadir, dataset), split='test',transform=transform,
                         target_transform=target_transform)
-                        #
+
     if weights is not None:
         weights = np.loadtxt(weights)
     opt = torch.optim.SGD(net.parameters(), lr=lr, momentum=momentum,
                           weight_decay=0.0005)
 
+    
     if augmentation:
         collate_fn = lambda batch: augment_collate(batch, crop=crop_size, flip=True)
     else:
