@@ -9,7 +9,6 @@ import yaml
 from torch.nn.parameter import Parameter
 from tqdm import tqdm
 
-
 class TqdmHandler(logging.StreamHandler):
 
     def __init__(self):

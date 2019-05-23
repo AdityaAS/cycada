@@ -96,7 +96,6 @@ def get_target_transform(params):
         return transforms.Compose([transform, t_uniform])
 
 class AddaDataset(data.Dataset):
-
     def __init__(self, src_data, tgt_data):
         self.src = src_data
         self.tgt = tgt_data
@@ -111,7 +110,6 @@ class AddaDataset(data.Dataset):
     def __len__(self):
         return min(len(self.src), len(self.tgt))
 
-
 data_params = {}
 def register_data_params(name):
     def decorator(cls):
@@ -125,7 +123,6 @@ def register_dataset_obj(name):
         dataset_obj[name] = cls
         return cls
     return decorator
-
 
 class DatasetParams(object):
     "Class variables defined."
@@ -142,6 +139,7 @@ def get_dataset(name, rootdir, dset, image_size, num_channels, download=True):
     params = data_params[name] 
     transform = get_transform(params, image_size, num_channels)
     target_transform = get_target_transform(params)
+    print(dataset_obj.keys())
     return dataset_obj[name](rootdir, train=is_train, transform=transform,
             target_transform=target_transform, download=download)
 

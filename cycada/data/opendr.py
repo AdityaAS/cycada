@@ -53,12 +53,13 @@ class OpenDR(Dataset):
         label_path = self.label_path(index)
 
         img = Image.open(img_path).convert('RGB')
-        
+                    
+        target = Image.open(label_path)        
         if self.transform is not None:
             img = self.transform(img)
 
-        target = Image.open(label_path)
-        target = np.asarray(target)*255
+        if self.target_transform is not None:
+            target = self.target_transform(target)
 
         return img, target
 

@@ -41,12 +41,7 @@ class Bilinear(nn.Module):
 @register_model('fcn8s')
 class VGG16_FCN8s(nn.Module):
 
-    transform = torchvision.transforms.Compose([
-        torchvision.transforms.ToTensor(),
-        torchvision.transforms.Normalize(
-            mean=[0.485, 0.456, 0.406],
-            std=[0.229, 0.224, 0.225]),
-        ])
+    
 
     def __init__(self, num_cls=19, pretrained=True, weights_init=None, 
             output_last_ft=False):
@@ -210,8 +205,6 @@ class Discriminator(nn.Module):
     def load_weights(self, weights):
         print('Loading discriminator weights')
         self.load_state_dict(torch.load(weights))
-   
-
 
 class Transform_Module(nn.Module):
     def __init__(self, input_dim=4096):

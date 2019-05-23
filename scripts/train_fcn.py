@@ -70,17 +70,25 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
         target_transform.append(
             torchvision.transforms.Resize(480 // downscale,
                                          interpolation=Image.NEAREST))
+
+
+    nettransform = torchvision.transforms.Compose([
+        torchvision.transforms.ToTensor(),
+        torchvision.transforms.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225]),
+        ])
+
     transform.extend([
         torchvision.transforms.Resize(480),
-        net.transform
+        nettransform
         ])
+
     target_transform.extend([
         torchvision.transforms.Resize(480, interpolation=Image.NEAREST),
         to_tensor_raw
         ])
 
-
-    
     transform = torchvision.transforms.Compose(transform)
     target_transform = torchvision.transforms.Compose(target_transform)
     dataset = dataset[0]
@@ -108,21 +116,21 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
         collate_fn = torch.utils.data.dataloader.default_collate
 
     train_loader = torch.utils.data.DataLoader(datasets_train, batch_size=batch_size,
-                                            shuffle=True, num_workers=2,
+                                            shuffle=True, num_workers=0,
                                             collate_fn=collate_fn,
                                             pin_memory=True)
 
     val_loader = torch.utils.data.DataLoader(datasets_val, batch_size=batch_size,
-                                            shuffle=True, num_workers=2,
+                                            shuffle=True, num_workers=0,
                                             collate_fn=collate_fn,
                                             pin_memory=True)
 
     test_loader = torch.utils.data.DataLoader(datasets_test, batch_size=batch_size,
-                                            shuffle=True, num_workers=2,
+                                            shuffle=True, num_workers=0,
                                             collate_fn=collate_fn,
                                             pin_memory=True)
 
-    
+
     iteration = 0
     losses = deque(maxlen=10)
 
