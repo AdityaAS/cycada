@@ -28,6 +28,7 @@ from cycada.util import preprocess_viz
 from cycada.tools.util import make_variable
 from cycada.loss_fns import supervised_loss
 from cycada.metrics import IoU, recall
+from tqdm import tqdm
 
 
 def compose_transforms(downscale):
@@ -146,11 +147,11 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
     data_metric['val'] = copy(metrics)
     data_metric['test'] = copy(metrics)
     max_epochs = math.ceil(iterations/batch_size)
-    
     for epochs in range(max_epochs):
         if phase == 'train':
             net.train()
-            for im, label in train_loader:
+            train_loader = iter(train_loader)
+            for im, label in tqdm(train_loader):
 
                 # Clear out gradients
                 opt.zero_grad()
@@ -162,10 +163,9 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
                 # forward pass and compute loss
                 preds = net(im)
                 loss = supervised_loss(preds, label)
-
                 iou = IoU(preds, label)
                 rc = recall(preds, label)
-        
+
                 # backward pass
                 loss.backward()
                 data_metric['train']['losses'].append(loss.item())
@@ -182,78 +182,81 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
                 imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
                 writer.add_image('{}_image_data'.format(phase), imutil, iteration)
                 iteration = iteration + 1
+            
+            print(epochs, loss)
 
-        # Run val epoch for every 5 train epochs
-        if epochs%5 == 0:
-            net.eval()
-            for im, label in val_loader:
-                # load data/label
-                im = make_variable(im, requires_grad=False)
-                label = make_variable(label, requires_grad=False)
+            # Run val epoch for every 5 train epochs
+            if epochs%1 == 0:
+                net.eval()
+                for im, label in val_loader:
+                    # load data/label
+                    im = make_variable(im, requires_grad=False)
+                    label = make_variable(label, requires_grad=False)
+            
+                    # forward pass and compute loss
+                    preds = net(im)
+                    loss = supervised_loss(preds, label)
+
+                    iou = IoU(preds, label)
+                    rc = recall(preds, label)
+
+
+                    data_metric['val']['losses'].append(loss.item())
+                    data_metric['val']['ious'].append(iou.item())
+                    data_metric['val']['recalls'].append(rc.item())
+
+                    vizz = preprocess_viz(im, preds, label)
+                    writer.add_scalar('train_loss', np.mean(data_metric['val']['losses']), iteration)
+                    writer.add_scalar('train_IOU', np.mean(data_metric['val']['ious']), iteration)
+                    writer.add_scalar('train_Recall', np.mean(data_metric['val']['recalls']), iteration)
+                    imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
+                    writer.add_image('{}_image_data'.format('val'), imutil, iteration)
         
-                # forward pass and compute loss
-                preds = net(im)
-                loss = supervised_loss(preds, label)
+            # Run test epoch for every 50 train epochs
+            if epochs%50 == 0:
+                net.eval()
+                for im, label in test_loader:
+                    # load data/label
+                    im = make_variable(im, requires_grad=False)
+                    label = make_variable(label, requires_grad=False)
+            
+                    # forward pass and compute loss
+                    preds = net(im)
+                    loss = supervised_loss(preds, label)
+                    iou = IoU(preds, label)
+                    rc = recall(preds, label)
 
-                iou = IoU(preds, label)
-                rc = recall(preds, label)
+                    data_metric['test']['losses'].append(loss.item())
+                    data_metric['test']['ious'].append(iou.item())
+                    data_metric['test']['recalls'].append(rc.item())
 
-                data_metric['val']['losses'].append(loss.item())
-                data_metric['val']['ious'].append(iou.item())
-                data_metric['val']['recalls'].append(rc.item())
+            # log results
+            if epochs%1 == 0:
+                logging.info('Iteration {}:\t{}'
+                                .format(iteration, np.mean(losses)))
+                writer.add_scalar('loss', np.mean(losses), iteration)
 
                 vizz = preprocess_viz(im, preds, label)
-                writer.add_scalar('train_loss', np.mean(data_metric['val']['losses']), iteration)
-                writer.add_scalar('train_IOU', np.mean(data_metric['val']['ious']), iteration)
-                writer.add_scalar('train_Recall', np.mean(data_metric['val']['recalls']), iteration)
+                writer.add_scalar('train_loss', np.mean(data_metric['test']['losses']), iteration)
+                writer.add_scalar('train_IOU', np.mean(data_metric['test']['ious']), iteration)
+                writer.add_scalar('train_Recall', np.mean(data_metric['test']['recalls']), iteration)
                 imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
-                writer.add_image('{}_image_data'.format('val'), imutil, iteration)
-        
-        # Run test epoch for every 50 train epochs
-        if epochs%50 == 0:
-            net.eval()
-            for im, label in test_loader:
-                # load data/label
-                im = make_variable(im, requires_grad=False)
-                label = make_variable(label, requires_grad=False)
-        
-                # forward pass and compute loss
-                preds = net(im)
-                loss = supervised_loss(preds, label)
-                iou = IoU(preds, label)
-                rc = recall(preds, label)
+                writer.add_image('{}_image_data'.format('test'), imutil, iteration)
 
-                data_metric['test']['losses'].append(loss.item())
-                data_metric['test']['ious'].append(iou.item())
-                data_metric['test']['recalls'].append(rc.item())
+            if step is not None and epochs % step == 0:
+                logging.info('Decreasing learning rate by 0.1.')
+                step_lr(optimizer, 0.1)
 
-        # log results
-        if epochs%1 == 0:
-            logging.info('Iteration {}:\t{}'
-                            .format(iteration, np.mean(losses)))
-            writer.add_scalar('loss', np.mean(losses), iteration)
+            if epochs % snapshot == 0:
+                torch.save(net.state_dict(),
+                            '{}-iter{}.pth'.format(output, iteration))
+                
+            if epochs % 10 == 0:
+                continue
 
-            vizz = preprocess_viz(im, preds, label)
-            writer.add_scalar('train_loss', np.mean(data_metric['test']['losses']), iteration)
-            writer.add_scalar('train_IOU', np.mean(data_metric['test']['ious']), iteration)
-            writer.add_scalar('train_Recall', np.mean(data_metric['test']['recalls']), iteration)
-            imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
-            writer.add_image('{}_image_data'.format('test'), imutil, iteration)
-
-        if step is not None and epochs % step == 0:
-            logging.info('Decreasing learning rate by 0.1.')
-            step_lr(optimizer, 0.1)
-
-        if epochs % snapshot == 0:
-            torch.save(net.state_dict(),
-                        '{}-iter{}.pth'.format(output, iteration))
-            
-        if epochs % 10 == 0:
-            continue
-
-        if epochs == max_epochs - 1:
-            logging.info('Optimization complete.')
-            break           
+            if epochs == max_epochs - 1:
+                logging.info('Optimization complete.')
+                break           
 
 if __name__ == '__main__':
     main()
