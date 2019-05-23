@@ -11,6 +11,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
+import torchvision.utils as vutils
 from tensorboardX import SummaryWriter
 from PIL import Image
 from torch.autograd import Variable
@@ -22,6 +23,7 @@ from cycada.transforms import augment_collate
 from cycada.util import config_logging
 from cycada.util import to_tensor_raw
 from cycada.util import roundrobin_infinite
+from cycada.util import preprocess_viz
 from cycada.tools.util import make_variable
 from cycada.loss_fns import supervised_loss
 from cycada.metrics import IoU, recall
@@ -120,8 +122,10 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
                                             pin_memory=True)
     iteration = 0
     losses = deque(maxlen=10)
-
+    ious = deque(maxlen=10)
+    recalls = deque(maxlen=10)
     max_epochs = math.ceil(iterations/batch_size)
+    
     for epochs in range(max_epochs):
         if phase == 'train':
             net.train()
@@ -136,16 +140,26 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
                 preds = net(im)
                 loss = supervised_loss(preds, label)
 
-                IoU(preds, label)
-                recall(preds, label)
+                iou = IoU(preds, label)
+                rc = recall(preds, label)
                 print(epochs, loss)
         
                 # backward pass
                 loss.backward()
                 losses.append(loss.item())
-        
+                ious.append(iou.item())
+                recalls.append(rc.item())
                 # step gradients
                 opt.step()
+                
+                #writer
+                vizz = preprocess_viz(im, preds, label)
+                writer.add_scalar('loss', np.mean(losses), iteration)
+                writer.add_scalar('IOU', np.mean(ious), iteration)
+                writer.add_scalar('Recall', np.mean(recalls), iteration)
+                imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
+                writer.add_image('{}_image_data'.format(phase), imutil, iteration)
+                iteration = iteration + 1
 
         if epochs%5 == 0:
             net.eval()
@@ -169,13 +183,6 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
                 preds = net(im)
                 loss = supervised_loss(preds, label)
 
-
-        # log results
-        if epochs%1 == 0:
-            logging.info('Iteration {}:\t{}'
-                            .format(iteration, np.mean(losses)))
-            writer.add_scalar('loss', np.mean(losses), iteration)
-        iteration += 1
         if step is not None and epochs % step == 0:
             logging.info('Decreasing learning rate by 0.1.')
             step_lr(optimizer, 0.1)

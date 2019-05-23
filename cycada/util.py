@@ -92,7 +92,6 @@ def roundrobin_infinite(*loaders):
     if not loaders:
         return
     iters = [iter(loader) for loader in loaders]
-    print("HAHAHAHAHAH",len(iters))
     while True:
         for i in range(len(iters)):
             it = iters[i]
@@ -102,5 +101,22 @@ def roundrobin_infinite(*loaders):
                 iters[i] = iter(loaders[i])
                 yield next(iters[i])
 
+def rgb2gray(rgb):
+    return np.dot(rgb[...,:3], [0.2989, 0.5870, 0.1140])
+
 def get_pred(pred):
-    return torch.max(preds, dim=1)[1].long()
+    return torch.max(pred, dim=1)[1].long()
+
+def preprocess_viz(image, pred, labels):
+    p_maps = get_pred(pred)
+    p_maps = p_maps.cpu().numpy()
+    labels = labels.cpu().numpy()
+    images = image.cpu().numpy()
+    im1 = rgb2gray(images[0].T)
+    im2 = rgb2gray(images[1].T)
+    final = np.stack((im1,p_maps[0],labels[0],im2,p_maps[1],labels[1]))
+    final = np.expand_dims(final, axis=1)
+    return final
+
+
+
