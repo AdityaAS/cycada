@@ -11,8 +11,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
+import torchvision.utils as vutils
 from tensorboardX import SummaryWriter
 from PIL import Image
+from copy import copy
 from torch.autograd import Variable
 print(os.getcwd())
 from cycada.data.data_loader import get_fcn_dataset as get_dataset
@@ -22,6 +24,7 @@ from cycada.transforms import augment_collate
 from cycada.util import config_logging
 from cycada.util import to_tensor_raw
 from cycada.util import roundrobin_infinite
+from cycada.util import preprocess_viz
 from cycada.tools.util import make_variable
 from cycada.loss_fns import supervised_loss
 from cycada.metrics import IoU, recall
@@ -137,9 +140,13 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
 
 
     iteration = 0
-    losses = deque(maxlen=10)
-
+    data_metric = {'train': None, 'val' : None, 'test' : None}
+    metrics = {'losses': deque(maxlen=10), 'ious': deque(maxlen=10), 'recalls': deque(maxlen=10)}
+    data_metric['train'] = copy(metrics)
+    data_metric['val'] = copy(metrics)
+    data_metric['test'] = copy(metrics)
     max_epochs = math.ceil(iterations/batch_size)
+    
     for epochs in range(max_epochs):
         if phase == 'train':
             net.train()
@@ -156,16 +163,25 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
                 preds = net(im)
                 loss = supervised_loss(preds, label)
 
-                IoU(preds, label)
-                recall(preds, label)
-                print(epochs, loss)
+                iou = IoU(preds, label)
+                rc = recall(preds, label)
         
                 # backward pass
                 loss.backward()
-                losses.append(loss.item())
-        
+                data_metric['train']['losses'].append(loss.item())
+                data_metric['train']['ious'].append(iou.item())
+                data_metric['train']['recalls'].append(rc.item())
                 # step gradients
                 opt.step()
+                
+                #writer
+                vizz = preprocess_viz(im, preds, label)
+                writer.add_scalar('train_loss', np.mean(data_metric['train']['losses']), iteration)
+                writer.add_scalar('train_IOU', np.mean(data_metric['train']['ious']), iteration)
+                writer.add_scalar('train_Recall', np.mean(data_metric['train']['recalls']), iteration)
+                imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
+                writer.add_image('{}_image_data'.format(phase), imutil, iteration)
+                iteration = iteration + 1
 
         # Run val epoch for every 5 train epochs
         if epochs%5 == 0:
@@ -178,11 +194,25 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
                 # forward pass and compute loss
                 preds = net(im)
                 loss = supervised_loss(preds, label)
-            
+
+                iou = IoU(preds, label)
+                rc = recall(preds, label)
+
+                data_metric['val']['losses'].append(loss.item())
+                data_metric['val']['ious'].append(iou.item())
+                data_metric['val']['recalls'].append(rc.item())
+
+                vizz = preprocess_viz(im, preds, label)
+                writer.add_scalar('train_loss', np.mean(data_metric['val']['losses']), iteration)
+                writer.add_scalar('train_IOU', np.mean(data_metric['val']['ious']), iteration)
+                writer.add_scalar('train_Recall', np.mean(data_metric['val']['recalls']), iteration)
+                imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
+                writer.add_image('{}_image_data'.format('val'), imutil, iteration)
+        
         # Run test epoch for every 50 train epochs
         if epochs%50 == 0:
             net.eval()
-            for im, label in val_loader:
+            for im, label in test_loader:
                 # load data/label
                 im = make_variable(im, requires_grad=False)
                 label = make_variable(label, requires_grad=False)
@@ -190,6 +220,12 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
                 # forward pass and compute loss
                 preds = net(im)
                 loss = supervised_loss(preds, label)
+                iou = IoU(preds, label)
+                rc = recall(preds, label)
+
+                data_metric['test']['losses'].append(loss.item())
+                data_metric['test']['ious'].append(iou.item())
+                data_metric['test']['recalls'].append(rc.item())
 
         # log results
         if epochs%1 == 0:
@@ -197,7 +233,12 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
                             .format(iteration, np.mean(losses)))
             writer.add_scalar('loss', np.mean(losses), iteration)
 
-        iteration += 1
+            vizz = preprocess_viz(im, preds, label)
+            writer.add_scalar('train_loss', np.mean(data_metric['test']['losses']), iteration)
+            writer.add_scalar('train_IOU', np.mean(data_metric['test']['ious']), iteration)
+            writer.add_scalar('train_Recall', np.mean(data_metric['test']['recalls']), iteration)
+            imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
+            writer.add_image('{}_image_data'.format('test'), imutil, iteration)
 
         if step is not None and epochs % step == 0:
             logging.info('Decreasing learning rate by 0.1.')
