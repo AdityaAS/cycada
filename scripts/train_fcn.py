@@ -26,43 +26,8 @@ from cycada.tools.util import make_variable
 from cycada.loss_fns import supervised_loss
 from cycada.metrics import IoU, recall
 
-@click.command()
-@click.argument('output')
-@click.option('--phase', default='train')
-@click.option('--dataset', required=True, multiple=True)
-@click.option('--datadir', default="", type=click.Path(exists=True))
-@click.option('--batch_size', '-b', default=1)
-@click.option('--lr', '-l', default=0.001)
-@click.option('--step', type=int)
-@click.option('--iterations', '-i', default=100000)
-@click.option('--momentum', '-m', default=0.9)
-@click.option('--snapshot', '-s', default=5000)
-@click.option('--downscale', type=int)
-@click.option('--augmentation/--no-augmentation', default=False)
-@click.option('--fyu/--torch', default=False)
-@click.option('--crop_size', default=120)
-@click.option('--weights', type=click.Path(exists=True))
-@click.option('--model', default='fcn8s', type=click.Choice(models.keys()))
-@click.option('--num_cls', default=2, type=int)
-@click.option('--gpu', default='0')
 
-def main(output, phase, dataset, datadir, batch_size, lr, step, iterations, 
-        momentum, snapshot, downscale, augmentation, fyu, crop_size, 
-        weights, model, gpu, num_cls):
-    if weights is not None:
-        raise RuntimeError("weights don't work because eric is bad at coding")
-    os.environ['CUDA_VISIBLE_DEVICES'] = gpu
-    config_logging()
-    
-    logdir = 'runs/{:s}/{:s}'.format(model, '-'.join(dataset))
-    writer = SummaryWriter(log_dir=logdir)
-    net = get_model(model, num_cls=num_cls)
-    #print("Model Parameter{}".format(net.parameters))
-
-    model_parameters = filter(lambda p: p.requires_grad, net.parameters())
-    params = sum([np.prod(p.size()) for p in model_parameters])
-    #print("NUM params {}".format(params))
-    net.cuda()
+def compose_transforms(downscale):
     transform = []
     target_transform = []
     if downscale is not None:
@@ -70,7 +35,6 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
         target_transform.append(
             torchvision.transforms.Resize(480 // downscale,
                                          interpolation=Image.NEAREST))
-
 
     nettransform = torchvision.transforms.Compose([
         torchvision.transforms.ToTensor(),
@@ -91,6 +55,47 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
 
     transform = torchvision.transforms.Compose(transform)
     target_transform = torchvision.transforms.Compose(target_transform)
+    return transform, target_transform
+
+@click.command()
+@click.argument('output')
+@click.option('--phase', default='train')
+@click.option('--dataset', required=True, multiple=True)
+@click.option('--datadir', default="", type=click.Path(exists=True))
+@click.option('--batch_size', '-b', default=1)
+@click.option('--lr', '-l', default=0.001)
+@click.option('--step', type=int)
+@click.option('--iterations', '-i', default=100000)
+@click.option('--momentum', '-m', default=0.9)
+@click.option('--snapshot', '-s', default=5000)
+@click.option('--downscale', type=int)
+@click.option('--augmentation/--no-augmentation', default=False)
+@click.option('--fyu/--torch', default=False)
+@click.option('--crop_size', default=120)
+@click.option('--weights', type=click.Path(exists=True))
+@click.option('--model', default='fcn8s', type=click.Choice(models.keys()))
+@click.option('--num_cls', default=2, type=int)
+@click.option('--gpu', default='0')
+def main(output, phase, dataset, datadir, batch_size, lr, step, iterations, 
+        momentum, snapshot, downscale, augmentation, fyu, crop_size, 
+        weights, model, gpu, num_cls):
+    if weights is not None:
+        raise RuntimeError("weights don't work because eric is bad at coding")
+    os.environ['CUDA_VISIBLE_DEVICES'] = gpu
+    config_logging()
+    
+    logdir = 'runs/{:s}/{:s}'.format(model, '-'.join(dataset))
+    writer = SummaryWriter(log_dir=logdir)
+    net = get_model(model, num_cls=num_cls)
+    #print("Model Parameter{}".format(net.parameters))
+
+    transform, target_transform = compose_transforms(downscale)
+
+    model_parameters = filter(lambda p: p.requires_grad, net.parameters())
+    params = sum([np.prod(p.size()) for p in model_parameters])
+    #print("NUM params {}".format(params))
+    net.cuda()
+    
     dataset = dataset[0]
 
     datasets_train = get_dataset(dataset, os.path.join(datadir, dataset), split='train',transform=transform,
@@ -104,7 +109,6 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
     datasets_test = get_dataset(dataset, os.path.join(datadir, dataset), split='test',transform=transform,
                         target_transform=target_transform)
                         #
-
     if weights is not None:
         weights = np.loadtxt(weights)
     opt = torch.optim.SGD(net.parameters(), lr=lr, momentum=momentum,
