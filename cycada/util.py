@@ -92,6 +92,7 @@ def roundrobin_infinite(*loaders):
     if not loaders:
         return
     iters = [iter(loader) for loader in loaders]
+    print("HAHAHAHAHAH",len(iters))
     while True:
         for i in range(len(iters)):
             it = iters[i]
