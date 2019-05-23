@@ -1,13 +1,12 @@
 gpu=0
-data="singleview_opendr_color_100k_copy"
-datadir='/home/ubuntu/anthro-efs/anthro-backup-virginia/data/HMR_baby/datasets'
+data="singleview_opendr_solid"
+datadir='/efs/data/HMR_baby/datasets'
 data2=opendr
 model=fcn8s
 
-
 crop=240
 #datadir=/x
-batch=4
+batch=2
 iterations=10000
 lr=1e-3
 momentum=0.99
@@ -25,4 +24,4 @@ python scripts/train_fcn.py ${outdir} --phase ${phase} \
     --lr ${lr} -b ${batch} -m ${momentum} \
     --crop_size ${crop} --iterations ${iterations} \
     --datadir ${datadir} \
-    --dataset ${data}  #--dataset ${data2} 
+    --dataset ${data} 

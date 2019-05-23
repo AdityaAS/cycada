@@ -78,6 +78,9 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
         torchvision.transforms.Resize(480, interpolation=Image.NEAREST),
         to_tensor_raw
         ])
+
+
+    
     transform = torchvision.transforms.Compose(transform)
     target_transform = torchvision.transforms.Compose(target_transform)
     dataset = dataset[0]
@@ -118,6 +121,8 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
                                             shuffle=True, num_workers=2,
                                             collate_fn=collate_fn,
                                             pin_memory=True)
+
+    
     iteration = 0
     losses = deque(maxlen=10)
 
