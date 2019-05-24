@@ -41,8 +41,6 @@ class Bilinear(nn.Module):
 @register_model('fcn8s')
 class VGG16_FCN8s(nn.Module):
 
-    
-
     def __init__(self, num_cls=19, pretrained=True, weights_init=None, 
             output_last_ft=False):
         super().__init__()
@@ -148,10 +146,6 @@ class VGG16_FCN8s(nn.Module):
                 continue
             vgg_head_param = next(vgg_head_params)
             vgg_head_param.data = v.view(vgg_head_param.size())
-
-
-    
-
 
 class VGG16_FCN8s_caffe(VGG16_FCN8s):
 
