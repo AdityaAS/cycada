@@ -90,7 +90,7 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
     
     # Initialize SummaryWriter - For tensorboard visualizations
     logdir = 'runs/{:s}/{:s}'.format(model, '-'.join(dataset))
-    writer = SummaryWriter(log_dir=logdir)
+    writer = SummaryWriter(logdir=logdir)
 
     # Get appropriate model based on cmd line architecture
     net = get_model(model, num_cls=num_cls)
