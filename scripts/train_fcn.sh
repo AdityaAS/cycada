@@ -1,17 +1,16 @@
 gpu=0
 data="singleview_opendr_solid"
-datadir='/efs/data/HMR_baby/datasets'
+datadir='/home/users/aditya/data/'
 data2=opendr
 model=fcn8s
 
 crop=240
-#datadir=/x
 batch=2
 iterations=10000
 lr=1e-3
 momentum=0.99
 num_cls=2
-
+# haha
 #outdir=results/${data}-${data2}/${model}
 outdir=results/${data}/${data}_${model}
 mkdir -p results/${data} 
