@@ -4,14 +4,12 @@ from os.path import join
 import numpy as np
 from PIL import Image
 
-import sys
-sys.path.append("..")
-
 import torch
 import torch.utils.data as data
 import torch.nn as nn
 from torchvision import datasets, transforms
 from cycada.util import to_tensor_raw
+
 
 def load_data(name, dset, batch=64, rootdir='', num_channels=3,
         image_size=32, download=True, kwargs={}):

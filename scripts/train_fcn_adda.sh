@@ -25,7 +25,7 @@ discrim='discrim_score'
 ########
 src='cyclegta5'
 tgt='cityscapes'
-datadir='/x/'
+datadir='/home/ubuntu/anthro-efs/anthro-backup-virginia/data/'
 
 
 resdir="results/${src}_to_${tgt}/adda_sgd/${weight_share}_nolsgan_${discrim}"
@@ -46,7 +46,8 @@ CUDA_VISIBLE_DEVICES=${gpu} python scripts/train_fcn_adda.py \
     --dataset ${src} --dataset ${tgt} --datadir ${datadir} \
     --lr ${lr} --momentum ${momentum} --gpu 0 \
     --lambda_d ${lambda_d} --lambda_g ${lambda_g} \
-    --weights_init ${base_model} --model ${model} \
+    --model ${model} \
     --"${weight_share}" --${discrim} --no_lsgan \
     --max_iter ${max_iter} --crop_size ${crop} --batch ${batch} \
     --snapshot $snapshot
+#    --weights_init ${base_model} \

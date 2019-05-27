@@ -1,11 +1,19 @@
 import os
 from os.path import join
 
+import sys
+sys.path.append('.')
+
+from cycada.data.adda_datasets import AddaDataLoader
+from cycada.data.cyclegta5 import CycleGTA5
+from cycada.data.usps import USPS
+from cycada.data.cyclegan import Svhn2MNIST, Usps2Mnist, Mnist2Usps
 from cycada.tools.train_task_net import train as train_source
 from cycada.tools.test_task_net import load_and_test_net
 from cycada.tools.train_adda_net import train_adda
 import torch
 import numpy as np
+
 
 # set random seed to 4325 
 # to reproduce the exact numbers
@@ -14,15 +22,15 @@ np.random.seed(4325)
 ###################################
 # Set to your preferred data path #
 ###################################
-datadir = '/x/jhoffman'
+datadir = '/home/ubuntu/anthro-efs/anthro-backup-virginia/data'
 ###################################
 
 # Choose GPU ID
 os.environ['CUDA_VISIBLE_DEVICES'] = '1' 
 
 # Problem Params
-src = 'mnist'
-tgt = 'usps'
+src = 'usps2mnist'
+tgt = 'mnist'
 iteration = 1 #'no_cycle' 
 
 base_src = src.split('2')[0]

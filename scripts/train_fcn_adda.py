@@ -20,6 +20,8 @@ from PIL import Image
 from torch.autograd import Variable
 
 from cycada.data.adda_datasets import AddaDataLoader
+from cycada.data.cyclegta5 import CycleGTA5
+from cycada.data.usps import USPS
 from cycada.models import get_model
 from cycada.models.models import models
 from cycada.models import VGG16_FCN8s, Discriminator
@@ -135,21 +137,26 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
     config_logging()
     print('Train Discrim Only', train_discrim_only)
     net = get_model(model, num_cls=num_cls, pretrained=True, weights_init=weights_init,
-            output_last_ft=discrim_feat)
+            output_last_ft=discrim_feat, finetune=True)
     if weights_shared:
         net_src = net # shared weights
     else:
         net_src = get_model(model, num_cls=num_cls, pretrained=True, 
-                weights_init=weights_init, output_last_ft=discrim_feat)
+                weights_init=weights_init, output_last_ft=discrim_feat, finetune=True)
         net_src.eval()
 
     odim = 1 if lsgan else 2
     idim = num_cls if not discrim_feat else 4096
     print('discrim_feat', discrim_feat, idim)
     print('discriminator init weights: ', weights_discrim)
-    discriminator = Discriminator(input_dim=idim, output_dim=odim, 
+    if torch.cuda.is_available():
+        discriminator = Discriminator(input_dim=idim, output_dim=odim, 
             pretrained=not (weights_discrim==None), 
             weights_init=weights_discrim).cuda()
+    else:
+        discriminator = Discriminator(input_dim=idim, output_dim=odim, 
+            pretrained=not (weights_discrim==None), 
+            weights_init=weights_discrim)
 
     loader = AddaDataLoader(net.transform, dataset, datadir, downscale, 
             crop_size=crop_size, half_crop=half_crop,
