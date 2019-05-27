@@ -1,3 +1,4 @@
+# WTF is this class doind? Why can't this be a part of a bigger transforms.py file?
 class Rotater(object):
 
     def __init__(self, dataset, orientations=6, transform=None,

@@ -35,6 +35,7 @@ def get_transform_dataset(dataset_name, rootdir, net_transform, downscale):
             target_transform=target_transform)
 
 sizes = {'cityscapes': 1024, 'gta5': 1024, 'cyclegta5': 1024, 'singleview_opendr_solid': 480, 'singleview_blender_100k_visibility': 224, 'singleview_opendr_color_100k_copy': 480}
+
 def get_orig_size(dataset_name):
     "Size of images in the dataset for relative scaling."
     try:
@@ -42,6 +43,7 @@ def get_orig_size(dataset_name):
     except:
         raise Exception('Unknown dataset size:', dataset_name)
 
+# TODO: Poor naming: Change this.
 def get_transform2(dataset_name, net_transform, downscale):
     "Returns image and label transform to downscale, crop and prepare for net."
     orig_size = get_orig_size(dataset_name)
@@ -59,6 +61,7 @@ def get_transform2(dataset_name, net_transform, downscale):
     target_transform = transforms.Compose(target_transform)
     return transform, target_transform
 
+# TODO: Poor Naming. Change this.
 def get_transform(params, image_size, num_channels):
     # Transforms for PIL Images: Gray <-> RGB
     Gray2RGB = transforms.Lambda(lambda x: x.convert('RGB'))
@@ -84,6 +87,7 @@ def get_transform(params, image_size, num_channels):
 
     return transforms.Compose(transform)
 
+
 def get_target_transform(params):
     transform = params.target_transform
     t_uniform = transforms.Lambda(lambda x: x[:,0] 
@@ -108,6 +112,8 @@ class AddaDataset(data.Dataset):
     def __len__(self):
         return min(len(self.src), len(self.tgt))
 
+
+#TODO: Is there a good way to get rid of register_data_params and register_dataset_obj. If yes, do that.
 data_params = {}
 def register_data_params(name):
     def decorator(cls):
@@ -115,12 +121,14 @@ def register_data_params(name):
         return cls
     return decorator
 
+
 dataset_obj = {}
 def register_dataset_obj(name):
     def decorator(cls):
         dataset_obj[name] = cls
         return cls
     return decorator
+
 
 class DatasetParams(object):
     "Class variables defined."
@@ -141,5 +149,7 @@ def get_dataset(name, rootdir, dset, image_size, num_channels, download=True):
     return dataset_obj[name](rootdir, train=is_train, transform=transform,
             target_transform=target_transform, download=download)
 
+
 def get_fcn_dataset(name, rootdir, **kwargs):
+    import pdb; pdb.set_trace()
     return dataset_obj[name](rootdir, **kwargs)

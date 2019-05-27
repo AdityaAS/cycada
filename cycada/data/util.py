@@ -14,7 +14,6 @@ def maybe_download(url, dest):
         logger.info('Downloading %s to %s', url, dest)
         download(url, dest)
 
-
 def download(url, dest):
     """Download the url to dest, overwriting dest if it already exists."""
     response = requests.get(url, stream=True)

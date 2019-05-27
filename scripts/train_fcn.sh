@@ -1,6 +1,6 @@
 gpu=0
 data="singleview_opendr_solid"
-datadir='/home/users/aditya/data/'
+datadir='/efs/data/HMR_baby/datasets/'
 data2=opendr
 model=fcn8s
 
