@@ -1,7 +1,7 @@
 {
 	"phase" : "train",
 	"dataset": "singleview_opendr_color_100k_copy",
-	"datadir": "/home/ubuntu/anthro-efs/anthro-backup-virginia/data/HMR_baby/datasets/singleview_opendr_color_100k_copy/train/paired",
+	"datadir": "/home/ubuntu/anthro-efs/anthro-backup-virginia/data/HMR_baby/datasets",
 	"batch_size": 2,
 	"lr": 0.001,
 	"step": null,
@@ -15,5 +15,7 @@
 	"weights": null,
 	"model": "fcn8s",
 	"num_cls": 2,
-	"gpu": "1"
+	"num_workers": 2,
+	"pin_memory": true,
+	"gpu": "0"
 }

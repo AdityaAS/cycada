@@ -113,7 +113,9 @@ def main(config_path):
     model_parameters = filter(lambda p: p.requires_grad, net.parameters())
     params = sum([np.prod(p.size()) for p in model_parameters])
     net.cuda()
-    
+    dataset = config["dataset"] 
+    num_workers = config["num_workers"]
+    pin_memory = config["pin_memory"]
     dataset = dataset[0]
 
     datasets_train = get_dataset(config["dataset"], os.path.join(config["datadir"], config["dataset"]), split='train',transform=transform,
@@ -131,25 +133,25 @@ def main(config_path):
                           weight_decay=0.0005)
 
 
-    if augmentation:
+    if config["augmentation"]:
         collate_fn = lambda batch: augment_collate(batch, crop=config["crop_size"], flip=True)
     else:
         collate_fn = torch.utils.data.dataloader.default_collate
 
     train_loader = torch.utils.data.DataLoader(datasets_train, batch_size=config["batch_size"],
-                                            shuffle=True, num_workers=8,
+                                            shuffle=True, num_workers=num_workers,
                                             collate_fn=collate_fn,
-                                            pin_memory=True)
+                                            pin_memory=pin_memory)
 
     val_loader = torch.utils.data.DataLoader(datasets_val, batch_size=config["batch_size"],
-                                            shuffle=True, num_workers=8,
+                                            shuffle=True, num_workers=num_workers,
                                             collate_fn=collate_fn,
-                                            pin_memory=True)
+                                            pin_memory=pin_memory)
 
     test_loader = torch.utils.data.DataLoader(datasets_test, batch_size=config["batch_size"],
-                                            shuffle=True, num_workers=8,
+                                            shuffle=True, num_workers=num_workers,
                                             collate_fn=collate_fn,
-                                            pin_memory=True)
+                                            pin_memory=pin_memory)
 
 
     iteration = 0
@@ -158,9 +160,9 @@ def main(config_path):
     data_metric['train'] = copy(metrics)
     data_metric['val'] = copy(metrics)
     data_metric['test'] = copy(metrics)
-    max_epochs = math.ceil(config["iterations"]/batch_size)
+    max_epochs = math.ceil(config["iterations"]/config["batch_size"])
     for epochs in range(max_epochs):
-        if phase == 'train':
+        if config["phase"] == 'train':
             net.train()
             train_loader = iter(train_loader)
             for im, label in tqdm(train_loader):
@@ -192,7 +194,7 @@ def main(config_path):
                 writer.add_scalar('train_IOU', np.mean(data_metric['train']['ious']), iteration)
                 writer.add_scalar('train_Recall', np.mean(data_metric['train']['recalls']), iteration)
                 imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
-                writer.add_image('{}_image_data'.format(phase), imutil, iteration)
+                writer.add_image('{}_image_data'.format('train'), imutil, iteration)
                 iteration = iteration + 1
             
             print(epochs, loss)
