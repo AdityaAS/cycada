@@ -59,8 +59,6 @@ def get_transform2(dataset_name, net_transform, downscale):
     target_transform = transforms.Compose(target_transform)
     return transform, target_transform
 
-
-
 def get_transform(params, image_size, num_channels):
     # Transforms for PIL Images: Gray <-> RGB
     Gray2RGB = transforms.Lambda(lambda x: x.convert('RGB'))

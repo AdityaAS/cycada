@@ -125,17 +125,17 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
         collate_fn = torch.utils.data.dataloader.default_collate
 
     train_loader = torch.utils.data.DataLoader(datasets_train, batch_size=batch_size,
-                                            shuffle=True, num_workers=0,
+                                            shuffle=True, num_workers=8,
                                             collate_fn=collate_fn,
                                             pin_memory=True)
 
     val_loader = torch.utils.data.DataLoader(datasets_val, batch_size=batch_size,
-                                            shuffle=True, num_workers=0,
+                                            shuffle=True, num_workers=8,
                                             collate_fn=collate_fn,
                                             pin_memory=True)
 
     test_loader = torch.utils.data.DataLoader(datasets_test, batch_size=batch_size,
-                                            shuffle=True, num_workers=0,
+                                            shuffle=True, num_workers=8,
                                             collate_fn=collate_fn,
                                             pin_memory=True)
 

@@ -125,6 +125,7 @@ class VGG16_FCN8s(nn.Module):
         fuse_pool3 = upscore_pool4 + score_pool3c
         upscore8 = self.upscore8(fuse_pool3)
         score = _crop(upscore8, input, offset=31)
+        
         if self.output_last_ft: 
             return score, last_ft
         else:

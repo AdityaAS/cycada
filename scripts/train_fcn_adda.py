@@ -131,7 +131,6 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
     logdir += '/' + datetime.now().strftime('%Y_%b_%d-%H:%M')
     writer = SummaryWriter(log_dir=logdir)
 
-
     os.environ['CUDA_VISIBLE_DEVICES'] = gpu
     config_logging()
     print('Train Discrim Only', train_discrim_only)
@@ -223,6 +222,7 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
             else:
                 score_s = Variable(net_src(im_s).data, requires_grad=False)
                 f_s = score_s
+                
             dis_score_s = discriminator(f_s)
             
             if discrim_feat:
@@ -232,6 +232,7 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
             else:
                 score_t = Variable(net(im_t).data, requires_grad=False)
                 f_t = score_t
+
             dis_score_t = discriminator(f_t)
             
             dis_pred_concat = torch.cat((dis_score_s, dis_score_t))
