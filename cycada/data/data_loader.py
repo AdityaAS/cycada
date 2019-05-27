@@ -34,7 +34,7 @@ def get_transform_dataset(dataset_name, rootdir, net_transform, downscale):
     return get_fcn_dataset(dataset_name, rootdir, transform=transform,
             target_transform=target_transform)
 
-sizes = {'cityscapes': 1024, 'gta5': 1024, 'cyclegta5': 1024, 'singleview_opendr_solid': 480, 'singleview_blender_100k_visibility': 224, 'singleview_opendr_color_100K_copy': 480}
+sizes = {'cityscapes': 1024, 'gta5': 1024, 'cyclegta5': 1024, 'singleview_opendr_solid': 480, 'singleview_blender_100k_visibility': 224, 'singleview_opendr_color_100k_copy': 480}
 def get_orig_size(dataset_name):
     "Size of images in the dataset for relative scaling."
     try:
