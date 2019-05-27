@@ -6,6 +6,7 @@ from collections import deque
 
 import click
 import math
+import json
 import numpy as np
 import torch
 import torch.nn as nn
@@ -60,7 +61,7 @@ def compose_transforms(downscale):
     transform = torchvision.transforms.Compose(transform)
     target_transform = torchvision.transforms.Compose(target_transform)
     return transform, target_transform
-
+'''
 @click.command()
 @click.argument('output')
 @click.option('--phase', default='train')
@@ -80,22 +81,33 @@ def compose_transforms(downscale):
 @click.option('--model', default='fcn8s', type=click.Choice(models.keys()))
 @click.option('--num_cls', default=2, type=int)
 @click.option('--gpu', default='0')
+'''
+'''
 def main(output, phase, dataset, datadir, batch_size, lr, step, iterations, 
         momentum, snapshot, downscale, augmentation, fyu, crop_size, 
-        weights, model, gpu, num_cls):
-    if weights is not None:
+        weights, model, gpu, num_cls):'''
+
+def main(config_path):
+    config = None
+    with open(config_path, 'r') as f:
+        config = json.load(f)
+
+    if config["weights"] is not None:
         raise RuntimeError("weights don't work because eric is bad at coding")
-    os.environ['CUDA_VISIBLE_DEVICES'] = gpu
+    os.environ['CUDA_VISIBLE_DEVICES'] = config["gpu"]
     config_logging()
     
     # Initialize SummaryWriter - For tensorboard visualizations
-    logdir = 'runs/{:s}/{:s}'.format(model, '-'.join(dataset))
-    writer = SummaryWriter(logdir=logdir)
+    logdir = 'runs/{:s}/{:s}'.format(config["model"], config["dataset"])
+    logdir = logdir + "/"
+    print(logdir)
+    #import pdb; pdb.set_trace()
+    writer = SummaryWriter(logdir)
 
     # Get appropriate model based on cmd line architecture
-    net = get_model(model, num_cls=num_cls)
+    net = get_model(config["model"], num_cls=config["num_cls"])
     # Get appropriate transforms to apply to input image and target segmask
-    transform, target_transform = compose_transforms(downscale)
+    transform, target_transform = compose_transforms(config["downscale"])
 
 
     model_parameters = filter(lambda p: p.requires_grad, net.parameters())
@@ -104,37 +116,37 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
     
     dataset = dataset[0]
 
-    datasets_train = get_dataset(dataset, os.path.join(datadir, dataset), split='train',transform=transform,
+    datasets_train = get_dataset(config["dataset"], os.path.join(config["datadir"], config["dataset"]), split='train',transform=transform,
                         target_transform=target_transform)
 
-    datasets_val = get_dataset(dataset, os.path.join(datadir, dataset), split='val',transform=transform,
+    datasets_val = get_dataset(config["dataset"], os.path.join(config["datadir"], config["dataset"]), split='val',transform=transform,
                         target_transform=target_transform)
 
-    datasets_test = get_dataset(dataset, os.path.join(datadir, dataset), split='test',transform=transform,
+    datasets_test = get_dataset(config["dataset"], os.path.join(config["datadir"], config["dataset"]), split='test',transform=transform,
                         target_transform=target_transform)
 
-    if weights is not None:
-        weights = np.loadtxt(weights)
-    opt = torch.optim.SGD(net.parameters(), lr=lr, momentum=momentum,
+    if config["weights"] is not None:
+        weights = np.loadtxt(config["weights"])
+    opt = torch.optim.SGD(net.parameters(), lr=config["lr"], momentum=config["momentum"],
                           weight_decay=0.0005)
 
 
     if augmentation:
-        collate_fn = lambda batch: augment_collate(batch, crop=crop_size, flip=True)
+        collate_fn = lambda batch: augment_collate(batch, crop=config["crop_size"], flip=True)
     else:
         collate_fn = torch.utils.data.dataloader.default_collate
 
-    train_loader = torch.utils.data.DataLoader(datasets_train, batch_size=batch_size,
+    train_loader = torch.utils.data.DataLoader(datasets_train, batch_size=config["batch_size"],
                                             shuffle=True, num_workers=8,
                                             collate_fn=collate_fn,
                                             pin_memory=True)
 
-    val_loader = torch.utils.data.DataLoader(datasets_val, batch_size=batch_size,
+    val_loader = torch.utils.data.DataLoader(datasets_val, batch_size=config["batch_size"],
                                             shuffle=True, num_workers=8,
                                             collate_fn=collate_fn,
                                             pin_memory=True)
 
-    test_loader = torch.utils.data.DataLoader(datasets_test, batch_size=batch_size,
+    test_loader = torch.utils.data.DataLoader(datasets_test, batch_size=config["batch_size"],
                                             shuffle=True, num_workers=8,
                                             collate_fn=collate_fn,
                                             pin_memory=True)
@@ -146,7 +158,7 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
     data_metric['train'] = copy(metrics)
     data_metric['val'] = copy(metrics)
     data_metric['test'] = copy(metrics)
-    max_epochs = math.ceil(iterations/batch_size)
+    max_epochs = math.ceil(config["iterations"]/batch_size)
     for epochs in range(max_epochs):
         if phase == 'train':
             net.train()
@@ -259,4 +271,8 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
                 break           
 
 if __name__ == '__main__':
-    main()
+    p = sys.argv[1]
+    if os.path.exists(p):
+        main(sys.argv[1])
+    else :
+        print("Incorrect Path")
