@@ -6,6 +6,7 @@ from collections import deque
 
 import click
 import math
+import json
 import numpy as np
 import torch
 import torch.nn as nn
@@ -31,85 +32,67 @@ from cycada.metrics import IoU, recall
 from tqdm import tqdm
 
 
-# TODO (Design Choic: Passing dataloders directly to the train function v/s passing dataset path and then building loaders inside the train function?
-@click.command()
-@click.argument('output')
-@click.option('--phase', default='train')
-@click.option('--dataset', required=True, multiple=True)
-@click.option('--datadir', default="", type=click.Path(exists=True))
-@click.option('--batch_size', '-b', default=1)
-@click.option('--lr', '-l', default=0.001)
-@click.option('--step', type=int)
-@click.option('--iterations', '-i', default=100000)
-@click.option('--momentum', '-m', default=0.9)
-@click.option('--snapshot', '-s', default=5000)
-@click.option('--downscale', type=int)
-@click.option('--augmentation/--no-augmentation', default=False)
-@click.option('--fyu/--torch', default=False)
-@click.option('--crop_size', default=120)
-@click.option('--weights', type=click.Path(exists=True))
-@click.option('--model', default='fcn8s', type=click.Choice(models.keys()))
-@click.option('--num_cls', default=2, type=int)
-@click.option('--gpu', default='0')
-# Maybe rewrite this to have epoch_train, epoch_val, epoch_test etc.
-def main(output, phase, dataset, datadir, batch_size, lr, step, iterations, 
-        momentum, snapshot, downscale, augmentation, fyu, crop_size, 
-        weights, model, gpu, num_cls):
+def main(config_path):
+    config = None
+    with open(config_path, 'r') as f:
+        config = json.load(f)
 
-    if weights is not None:
+    if config["weights"] is not None:
         raise RuntimeError("weights don't work because eric is bad at coding")
-
-    os.environ['CUDA_VISIBLE_DEVICES'] = gpu
+    os.environ['CUDA_VISIBLE_DEVICES'] = config["gpu"]
     config_logging()
     
     # Initialize SummaryWriter - For tensorboard visualizations
-    logdir = 'runs/{:s}/{:s}'.format(model, '-'.join(dataset))
-    writer = SummaryWriter(logdir=logdir)
+    logdir = 'runs/{:s}/{:s}'.format(config["model"], config["dataset"])
+    logdir = logdir + "/"
+    print(logdir)
+    #import pdb; pdb.set_trace()
+    writer = SummaryWriter(logdir)
 
     # Get appropriate model based on cmd line architecture
-    net = get_model(model, num_cls=num_cls)
+    net = get_model(config["model"], num_cls=config["num_cls"])
 
-    # Get appropriate transforms to apply to input image and target segmask
     model_parameters = filter(lambda p: p.requires_grad, net.parameters())
     params = sum([np.prod(p.size()) for p in model_parameters])
     net.cuda()
-    
-    import pdb; pdb.set_trace()
+
+
+    dataset = config["dataset"] 
+    num_workers = config["num_workers"]
+    pin_memory = config["pin_memory"]
     dataset = dataset[0]
 
-    datasets_train = get_dataset(dataset, os.path.join(datadir, dataset), split='train')
-    datasets_val = get_dataset(dataset, os.path.join(datadir, dataset), split='val')
-    datasets_test = get_dataset(dataset, os.path.join(datadir, dataset), split='test')
+    datasets_train = get_dataset(config["dataset"], os.path.join(config["datadir"], config["dataset"]), split='train')
+    datasets_val = get_dataset(config["dataset"], os.path.join(config["datadir"], config["dataset"]), split='val')
+    datasets_test = get_dataset(config["dataset"], os.path.join(config["datadir"], config["dataset"]), split='test')
 
-    import pdb; pdb.set_trace()
-    if weights is not None:
-        weights = np.loadtxt(weights)
-    opt = torch.optim.SGD(net.parameters(), lr=lr, momentum=momentum,
+    if config["weights"] is not None:
+        weights = np.loadtxt(config["weights"])
+    opt = torch.optim.SGD(net.parameters(), lr=config["lr"], momentum=config["momentum"],
                           weight_decay=0.0005)
 
-    #TODO: What is augment_collate doing?
-    if augmentation:
-        collate_fn = lambda batch: augment_collate(batch, crop=crop_size, flip=True)
+
+    if config["augmentation"]:
+        collate_fn = lambda batch: augment_collate(batch, crop=config["crop_size"], flip=True)
     else:
         collate_fn = torch.utils.data.dataloader.default_collate
 
-    train_loader = torch.utils.data.DataLoader(datasets_train, batch_size=batch_size,
-                                            shuffle=True, num_workers=0,
+    train_loader = torch.utils.data.DataLoader(datasets_train, batch_size=config["batch_size"],
+                                            shuffle=True, num_workers=num_workers,
                                             collate_fn=collate_fn,
-                                            pin_memory=True)
+                                            pin_memory=pin_memory)
 
-    val_loader = torch.utils.data.DataLoader(datasets_val, batch_size=batch_size,
-                                            shuffle=True, num_workers=0,
+
+    val_loader = torch.utils.data.DataLoader(datasets_val, batch_size=config["batch_size"],
+                                            shuffle=True, num_workers=num_workers,
                                             collate_fn=collate_fn,
-                                            pin_memory=True)
+                                            pin_memory=pin_memory)
 
-    #TODO: num workers, pin_memory, batch_size must be config arguments.
 
-    # test_loader shuffle must be false
-    test_loader = torch.utils.data.DataLoader(datasets_test, batch_size=batch_size,
-                                            shuffle=False, num_workers=0,
+    test_loader = torch.utils.data.DataLoader(datasets_test, batch_size=config["batch_size"],
+                                            shuffle=False, num_workers=num_workers,
                                             collate_fn=collate_fn,
-                                            pin_memory=True)
+                                            pin_memory=pin_memory)
 
     iteration = 0
     data_metric = {'train': None, 'val' : None, 'test' : None}
@@ -119,10 +102,10 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
     data_metric['val'] = copy(metrics)
     data_metric['test'] = copy(metrics)
 
-    max_epochs = math.ceil(iterations/batch_size)
+    max_epochs = math.ceil(config["iterations"]/config["batch_size"])
 
     for epochs in range(max_epochs):
-        if phase == 'train':
+        if config["phase"] == 'train':
             net.train()
             train_loader = iter(train_loader)
             for im, label in tqdm(train_loader):
@@ -157,7 +140,7 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
                 writer.add_scalar('train/IOU', np.mean(data_metric['train']['ious']), iteration)
                 writer.add_scalar('train/recall', np.mean(data_metric['train']['recalls']), iteration)
                 imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
-                writer.add_image('{}_image_data'.format(phase), imutil, iteration)
+                writer.add_image('{}_image_data'.format('train'), imutil, iteration)
                 iteration = iteration + 1
             
             print(epochs, loss)
@@ -222,4 +205,8 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
                 break           
 
 if __name__ == '__main__':
-    main()
+    p = sys.argv[1]
+    if os.path.exists(p):
+        main(sys.argv[1])
+    else :
+        print("Incorrect Path")

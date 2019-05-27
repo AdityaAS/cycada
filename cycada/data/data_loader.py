@@ -59,6 +59,7 @@ class AddaDataset(data.Dataset):
     def __len__(self):
         return min(len(self.src), len(self.tgt))
 
+data_params = {}
 def register_data_params(name):
     def decorator(cls):
         data_params[name] = cls
@@ -95,5 +96,4 @@ def get_dataset(name, rootdir, dset, image_size, num_channels, download=True):
 
 
 def get_fcn_dataset(name, rootdir, **kwargs):
-    import pdb; pdb.set_trace()
     return dataset_obj[name](rootdir, **kwargs)
