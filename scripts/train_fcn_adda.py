@@ -129,7 +129,7 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
     else:
         logdir += '_discrimscore'
     logdir += '/' + datetime.now().strftime('%Y_%b_%d-%H:%M')
-    writer = SummaryWriter(log_dir=logdir)
+    writer = SummaryWriter()#log_dir=logdir)
 
     os.environ['CUDA_VISIBLE_DEVICES'] = gpu
     config_logging()
@@ -149,14 +149,18 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
     idim = num_cls if not discrim_feat else 4096
     print('discrim_feat', discrim_feat, idim)
     print('discriminator init weights: ', weights_discrim)
-    discriminator = Discriminator(input_dim=idim, output_dim=odim, 
+    if torch.cuda.is_available():
+        discriminator = Discriminator(input_dim=idim, output_dim=odim, 
+                pretrained=not (weights_discrim==None), 
+                weights_init=weights_discrim).cuda()
+    else:
+        discriminator = Discriminator(input_dim=idim, output_dim=odim, 
             pretrained=not (weights_discrim==None), 
-            weights_init=weights_discrim).cuda()
-
+            weights_init=weights_discrim)
+        
     loader = AddaDataLoader(net.transform, dataset, datadir, downscale, 
             crop_size=crop_size, half_crop=half_crop,
             batch_size=batch, shuffle=True, num_workers=2)
-    print('dataset', dataset)
 
     # Class weighted loss?
     if cls_weights is not None:

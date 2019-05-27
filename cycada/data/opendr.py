@@ -9,7 +9,8 @@ from os.path import join, exists
 from cycada.data.data_loader import register_data_params, register_dataset_obj
 from cycada.data.data_loader import DatasetParams
 
-@register_data_params('singleview_opendr_solid')
+# @register_data_params('singleview_opendr_solid')
+@register_data_params('singleview_opendr_color_100k_copy')
 class OpenDRParams(DatasetParams):
     num_channels = 3
     image_size = 480
@@ -17,7 +18,8 @@ class OpenDRParams(DatasetParams):
     num_cls = 2
     target_transform = None
 
-@register_dataset_obj('singleview_opendr_solid')
+@register_dataset_obj('singleview_opendr_color_100k_copy')
+# @register_dataset_obj('singleview_opendr_solid')
 class OpenDR(Dataset):
 
     def __init__(self, root, num_cls=2, split='train', remap_labels=True, 

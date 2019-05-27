@@ -1,3 +1,5 @@
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -9,7 +11,6 @@ from torch.utils import model_zoo
 from torchvision.models import vgg
 
 from .models import register_model
-
 def get_upsample_filter(size):
     """Make a 2D bilinear kernel suitable for upsampling"""
     factor = (size + 1) // 2
@@ -26,7 +27,7 @@ def get_upsample_filter(size):
 class Bilinear(nn.Module):
 
     def __init__(self, factor, num_channels):
-        super().__init__()
+        super(Bilinear, self).__init__()
         self.factor = factor
         filter = get_upsample_filter(factor * 2)
         w = torch.zeros(num_channels, num_channels, factor * 2, factor * 2)
@@ -41,11 +42,18 @@ class Bilinear(nn.Module):
 @register_model('fcn8s')
 class VGG16_FCN8s(nn.Module):
 
-    
-
     def __init__(self, num_cls=19, pretrained=True, weights_init=None, 
             output_last_ft=False):
-        super().__init__()
+        super(VGG16_FCN8s, self).__init__()
+
+        self.transform = torchvision.transforms.Compose([
+        torchvision.transforms.ToTensor(),
+        torchvision.transforms.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225]),
+        ])
+
+
         self.output_last_ft = output_last_ft
         self.vgg = make_layers(vgg.cfgs['D'])
         self.vgg_head = nn.Sequential(
@@ -150,10 +158,6 @@ class VGG16_FCN8s(nn.Module):
             vgg_head_param = next(vgg_head_params)
             vgg_head_param.data = v.view(vgg_head_param.size())
 
-
-    
-
-
 class VGG16_FCN8s_caffe(VGG16_FCN8s):
 
     transform = torchvision.transforms.Compose([
@@ -183,7 +187,7 @@ class VGG16_FCN8s_caffe(VGG16_FCN8s):
 
 class Discriminator(nn.Module):
     def __init__(self, input_dim=4096, output_dim=2, pretrained=False, weights_init=''):
-        super().__init__()
+        super(Discriminator, self).__init__()
         dim1 = 1024 if input_dim==4096 else 512
         dim2 = int(dim1/2)
         self.D = nn.Sequential(
