@@ -1,6 +1,10 @@
 import torch
 import torch.nn.functional as F
 
+'''
+Input: 
+'''
+
 def supervised_loss(score, label, weights=None):
     loss_fn_ = torch.nn.NLLLoss(weight=weights, size_average=True, 
             ignore_index=255)

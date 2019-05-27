@@ -3,14 +3,15 @@ import scipy.io
 import torch
 from torch.utils.data import Dataset
 from glob import glob
-from PIL import Image
 from os.path import join, exists
 
 from cycada.data.data_loader import register_data_params, register_dataset_obj
 from cycada.data.data_loader import DatasetParams
+import cv2
+from cycada.data.util import convert_image_by_pixformat_normalize
 
-# @register_data_params('singleview_opendr_solid')
-@register_data_params('singleview_opendr_color_100k_copy')
+@register_data_params('singleview_opendr_solid')
+# @register_data_params('singleview_opendr_color_100k_copy')
 class OpenDRParams(DatasetParams):
     num_channels = 3
     image_size = 480
@@ -18,8 +19,8 @@ class OpenDRParams(DatasetParams):
     num_cls = 2
     target_transform = None
 
-@register_dataset_obj('singleview_opendr_color_100k_copy')
-# @register_dataset_obj('singleview_opendr_solid')
+# @register_dataset_obj('singleview_opendr_color_100k_copy')
+@register_dataset_obj('singleview_opendr_solid')
 class OpenDR(Dataset):
 
     def __init__(self, root, num_cls=2, split='train', remap_labels=True, 
@@ -50,18 +51,24 @@ class OpenDR(Dataset):
     def __iter__(self):
         return self
 
+    '''
+    Input: Index of image to return
+    Output:
+        Image in the format NCHW - normalized
+        Segmask in the format NHW (channels = 1 is understood) - not normalized because they are class labels
+    '''
     def __getitem__(self, index):
         img_path = self.img_path(index)
         label_path = self.label_path(index)
+        img = cv2.imread(img_path)
+        target = cv2.imread(label_path)
 
-        img = Image.open(img_path).convert('RGB')
-                    
-        target = Image.open(label_path)        
-        if self.transform is not None:
-            img = self.transform(img)
+        # Convert to NCHW format and normalize to -1 to 1
+        # WARNING: Original code did mean normalization, we did min max normalization. Change if necessary to old one.
+        img = torch.Tensor(convert_image_by_pixformat_normalize(img))
 
-        if self.target_transform is not None:
-            target = self.target_transform(target)
+        #WARNING: target must be made up of 0s and 1s only!
+        target = torch.Tensor(target.transpose(2, 0, 1)).mean(dim=0) / 255
 
         return img, target
 

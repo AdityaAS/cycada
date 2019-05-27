@@ -31,36 +31,7 @@ from cycada.metrics import IoU, recall
 from tqdm import tqdm
 
 
-def compose_transforms(downscale):
-    transform = []
-    target_transform = []
-    if downscale is not None:
-        transform.append(torchvision.transforms.Resize(480 // downscale))
-        target_transform.append(
-            torchvision.transforms.Resize(480 // downscale,
-                                         interpolation=Image.NEAREST))
-
-    nettransform = torchvision.transforms.Compose([
-        torchvision.transforms.ToTensor(),
-        torchvision.transforms.Normalize(
-            mean=[0.485, 0.456, 0.406],
-            std=[0.229, 0.224, 0.225]),
-        ])
-
-    transform.extend([
-        torchvision.transforms.Resize(480),
-        nettransform
-        ])
-
-    target_transform.extend([
-        torchvision.transforms.Resize(480, interpolation=Image.NEAREST),
-        to_tensor_raw
-        ])
-
-    transform = torchvision.transforms.Compose(transform)
-    target_transform = torchvision.transforms.Compose(target_transform)
-    return transform, target_transform
-
+# TODO (Design Choic: Passing dataloders directly to the train function v/s passing dataset path and then building loaders inside the train function?
 @click.command()
 @click.argument('output')
 @click.option('--phase', default='train')
@@ -80,11 +51,14 @@ def compose_transforms(downscale):
 @click.option('--model', default='fcn8s', type=click.Choice(models.keys()))
 @click.option('--num_cls', default=2, type=int)
 @click.option('--gpu', default='0')
+# Maybe rewrite this to have epoch_train, epoch_val, epoch_test etc.
 def main(output, phase, dataset, datadir, batch_size, lr, step, iterations, 
         momentum, snapshot, downscale, augmentation, fyu, crop_size, 
         weights, model, gpu, num_cls):
+
     if weights is not None:
         raise RuntimeError("weights don't work because eric is bad at coding")
+
     os.environ['CUDA_VISIBLE_DEVICES'] = gpu
     config_logging()
     
@@ -94,48 +68,44 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
 
     # Get appropriate model based on cmd line architecture
     net = get_model(model, num_cls=num_cls)
+
     # Get appropriate transforms to apply to input image and target segmask
-    transform, target_transform = compose_transforms(downscale)
-
-
     model_parameters = filter(lambda p: p.requires_grad, net.parameters())
     params = sum([np.prod(p.size()) for p in model_parameters])
     net.cuda()
     
     dataset = dataset[0]
 
-    datasets_train = get_dataset(dataset, os.path.join(datadir, dataset), split='train',transform=transform,
-                        target_transform=target_transform)
-
-    datasets_val = get_dataset(dataset, os.path.join(datadir, dataset), split='val',transform=transform,
-                        target_transform=target_transform)
-
-    datasets_test = get_dataset(dataset, os.path.join(datadir, dataset), split='test',transform=transform,
-                        target_transform=target_transform)
+    datasets_train = get_dataset(dataset, os.path.join(datadir, dataset), split='train')
+    datasets_val = get_dataset(dataset, os.path.join(datadir, dataset), split='val')
+    datasets_test = get_dataset(dataset, os.path.join(datadir, dataset), split='test')
 
     if weights is not None:
         weights = np.loadtxt(weights)
     opt = torch.optim.SGD(net.parameters(), lr=lr, momentum=momentum,
                           weight_decay=0.0005)
 
-
+    #TODO: What is augment_collate doing?
     if augmentation:
         collate_fn = lambda batch: augment_collate(batch, crop=crop_size, flip=True)
     else:
         collate_fn = torch.utils.data.dataloader.default_collate
 
     train_loader = torch.utils.data.DataLoader(datasets_train, batch_size=batch_size,
-                                            shuffle=True, num_workers=8,
+                                            shuffle=True, num_workers=0,
                                             collate_fn=collate_fn,
                                             pin_memory=True)
 
     val_loader = torch.utils.data.DataLoader(datasets_val, batch_size=batch_size,
-                                            shuffle=True, num_workers=8,
+                                            shuffle=True, num_workers=0,
                                             collate_fn=collate_fn,
                                             pin_memory=True)
 
+    #TODO: num workers, pin_memory, batch_size must be config arguments.
+
+    # test_loader shuffle must be false
     test_loader = torch.utils.data.DataLoader(datasets_test, batch_size=batch_size,
-                                            shuffle=True, num_workers=8,
+                                            shuffle=False, num_workers=0,
                                             collate_fn=collate_fn,
                                             pin_memory=True)
 
@@ -147,6 +117,7 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
     data_metric['val'] = copy(metrics)
     data_metric['test'] = copy(metrics)
     max_epochs = math.ceil(iterations/batch_size)
+
     for epochs in range(max_epochs):
         if phase == 'train':
             net.train()
@@ -168,6 +139,7 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
 
                 # backward pass
                 loss.backward()
+                # TODO: Right now this is running average, ideally we want true average. Make that change
                 data_metric['train']['losses'].append(loss.item())
                 data_metric['train']['ious'].append(iou.item())
                 data_metric['train']['recalls'].append(rc.item())
@@ -200,7 +172,6 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
                     iou = IoU(preds, label)
                     rc = recall(preds, label)
 
-
                     data_metric['val']['losses'].append(loss.item())
                     data_metric['val']['ious'].append(iou.item())
                     data_metric['val']['recalls'].append(rc.item())
@@ -219,7 +190,7 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
                     # load data/label
                     im = make_variable(im, requires_grad=False)
                     label = make_variable(label, requires_grad=False)
-            
+
                     # forward pass and compute loss
                     preds = net(im)
                     loss = supervised_loss(preds, label)
