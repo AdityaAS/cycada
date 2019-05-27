@@ -188,7 +188,7 @@ def main(config_path):
                     data_metric['test']['recalls'].append(rc.item())
 
             if step is not None and epochs % step == 0:
-                logging.info('Decreasing learning rate by 0.1.')
+                logging.info('Decreasing learning rate by 0.1 factor')
                 step_lr(optimizer, 0.1)
 
             if epochs % config.snapshot == 0:
