@@ -1,7 +1,7 @@
 import sys
 sys.path.append('./')
 import logging
-import os.path
+from os.path import join, exists
 from collections import deque
 
 import click
@@ -39,32 +39,33 @@ def main(config_path):
 
     if config["weights"] is not None:
         raise RuntimeError("weights don't work because eric is bad at coding")
+    
     os.environ['CUDA_VISIBLE_DEVICES'] = config["gpu"]
+
     config_logging()
     
     # Initialize SummaryWriter - For tensorboard visualizations
     logdir = 'runs/{:s}/{:s}'.format(config["model"], config["dataset"])
     logdir = logdir + "/"
     print(logdir)
-    #import pdb; pdb.set_trace()
+
     writer = SummaryWriter(logdir)
 
-    # Get appropriate model based on cmd line architecture
+    # Get appropriate model based on config parameters
     net = get_model(config["model"], num_cls=config["num_cls"])
 
     model_parameters = filter(lambda p: p.requires_grad, net.parameters())
     params = sum([np.prod(p.size()) for p in model_parameters])
     net.cuda()
 
-
     dataset = config["dataset"] 
     num_workers = config["num_workers"]
     pin_memory = config["pin_memory"]
     dataset = dataset[0]
 
-    datasets_train = get_dataset(config["dataset"], os.path.join(config["datadir"], config["dataset"]), split='train')
-    datasets_val = get_dataset(config["dataset"], os.path.join(config["datadir"], config["dataset"]), split='val')
-    datasets_test = get_dataset(config["dataset"], os.path.join(config["datadir"], config["dataset"]), split='test')
+    datasets_train = get_dataset(config["dataset"], join(config["datadir"], config["dataset"]), split='train')
+    datasets_val = get_dataset(config["dataset"], join(config["datadir"], config["dataset"]), split='val')
+    datasets_test = get_dataset(config["dataset"], join(config["datadir"], config["dataset"]), split='test')
 
     if config["weights"] is not None:
         weights = np.loadtxt(config["weights"])
@@ -82,12 +83,10 @@ def main(config_path):
                                             collate_fn=collate_fn,
                                             pin_memory=pin_memory)
 
-
     val_loader = torch.utils.data.DataLoader(datasets_val, batch_size=config["batch_size"],
                                             shuffle=True, num_workers=num_workers,
                                             collate_fn=collate_fn,
                                             pin_memory=pin_memory)
-
 
     test_loader = torch.utils.data.DataLoader(datasets_test, batch_size=config["batch_size"],
                                             shuffle=False, num_workers=num_workers,
@@ -206,7 +205,7 @@ def main(config_path):
 
 if __name__ == '__main__':
     p = sys.argv[1]
-    if os.path.exists(p):
+    if exists(p):
         main(sys.argv[1])
     else :
         print("Incorrect Path")
