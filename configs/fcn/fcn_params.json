@@ -7,7 +7,7 @@
 	"step": null,
 	"iterations": 1e5,
 	"momentum": 0.9,
-	"snapshot": 5e3,
+	"snapshot": 2000,
 	"downscale": 1,
 	"augmentation": false,
 	"fyu": false,
@@ -17,5 +17,7 @@
 	"num_cls": 2,
 	"num_workers": 2,
 	"pin_memory": true,
-	"gpu": "0"
+	"gpu": "0",
+	"output": "results",
+	"version": 0
 }

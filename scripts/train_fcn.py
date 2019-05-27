@@ -31,7 +31,6 @@ from cycada.loss_fns import supervised_loss
 from cycada.metrics import IoU, recall
 from tqdm import tqdm
 
-
 def main(config_path):
     config = None
     with open(config_path, 'r') as f:
@@ -45,7 +44,7 @@ def main(config_path):
     config_logging()
     
     # Initialize SummaryWriter - For tensorboard visualizations
-    logdir = 'runs/{:s}/{:s}'.format(config["model"], config["dataset"])
+    logdir = 'runs/{:s}/{:s}/{:s}'.format(config["model"], config["dataset"], 'v'.format(config.version))
     logdir = logdir + "/"
     print(logdir)
 
@@ -169,9 +168,9 @@ def main(config_path):
                     writer.add_scalar('val/Recall', np.mean(data_metric['val']['recalls']), iteration)
                     imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
                     writer.add_image('{}_image_data'.format('val'), imutil, iteration)
-        
+
             # Run test epoch for every 50 train epochs
-            if epochs%50 == 0:
+            if epochs % 50 == 0:
                 net.eval()
                 for im, label in test_loader:
                     # load data/label
@@ -192,14 +191,11 @@ def main(config_path):
                 logging.info('Decreasing learning rate by 0.1.')
                 step_lr(optimizer, 0.1)
 
-            if epochs % snapshot == 0:
-                torch.save(net.state_dict(),
-                            '{}-iter{}.pth'.format(output, iteration))
-                
-            if epochs % 10 == 0:
-                continue
+            if epochs % config.snapshot == 0:
+                torch.save(net.state_dict(), join(config.outputdir, config.dataset, config.dataset + '_' + config.model, 
+                    config.version, 'iter{}.pth'.format(iteration)))
 
-            if epochs == max_epochs - 1:
+            if epochs >= max_epochs - 1:
                 logging.info('Optimization complete.')
                 break           
 
