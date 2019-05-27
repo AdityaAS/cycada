@@ -141,7 +141,9 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
 
                 # backward pass
                 loss.backward()
+
                 # TODO: Right now this is running average, ideally we want true average. Make that change
+                # Total average will be memory intensive, let it be running average for the moment.
                 data_metric['train']['losses'].append(loss.item())
                 data_metric['train']['ious'].append(iou.item())
                 data_metric['train']['recalls'].append(rc.item())
