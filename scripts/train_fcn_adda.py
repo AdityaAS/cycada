@@ -5,6 +5,9 @@ from collections import deque
 import itertools
 from datetime import datetime
 
+import sys
+sys.path.append('.')
+
 import click
 import numpy as np
 import torch
