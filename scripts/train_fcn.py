@@ -74,12 +74,14 @@ def main(output, phase, dataset, datadir, batch_size, lr, step, iterations,
     params = sum([np.prod(p.size()) for p in model_parameters])
     net.cuda()
     
+    import pdb; pdb.set_trace()
     dataset = dataset[0]
 
     datasets_train = get_dataset(dataset, os.path.join(datadir, dataset), split='train')
     datasets_val = get_dataset(dataset, os.path.join(datadir, dataset), split='val')
     datasets_test = get_dataset(dataset, os.path.join(datadir, dataset), split='test')
 
+    import pdb; pdb.set_trace()
     if weights is not None:
         weights = np.loadtxt(weights)
     opt = torch.optim.SGD(net.parameters(), lr=lr, momentum=momentum,

@@ -1,6 +1,8 @@
 scipy
+torch=1.0.0
 torchvision
 tensorboardX
+# tensorboard 1.6
 tensorflow
 click
 tqdm
