@@ -16,7 +16,7 @@ from torch.autograd import Variable
 from ..models.models import get_model
 from ..data.data_loader import load_data
 from ..tools.test_task_net import test
-from ..tools.util import make_variable
+from ..tools.util import make_variable, load_model, save_model, save_opt, load_opt
 
 def train(loader_src, loader_tgt, net, opt_net, opt_dis, epoch):
    
@@ -115,10 +115,10 @@ def train(loader_src, loader_tgt, net, opt_net, opt_dis, epoch):
     return last_update
 
 
-def train_adda(src, tgt, model, num_cls, num_epoch=200,
+def train_adda(src, tgt, model, num_cls, args, num_epoch=200,
         batch=128, datadir="", outdir="", 
         src_weights=None, weights=None, lr=1e-5, betas=(0.9,0.999),
-        weight_decay=0):
+        weight_decay=0, save_epochs=50):
     """Main function for training ADDA."""
 
     ###########################
@@ -133,8 +133,7 @@ def train_adda(src, tgt, model, num_cls, num_epoch=200,
         kwargs = {}
 
     # setup network 
-    net = get_model('AddaNet', model=model, num_cls=num_cls,
-            src_weights_init=src_weights)
+    net = get_model('AddaNet', model=model, num_cls=num_cls, src_weights_init=src_weights)
     
     # print network and arguments
     print(net)
@@ -153,18 +152,27 @@ def train_adda(src, tgt, model, num_cls, num_epoch=200,
     ######################
     # Optimization setup #
     ######################
- 
     net_param = net.tgt_net.parameters()
     opt_net = optim.Adam(net_param, lr=lr, weight_decay=weight_decay, betas=betas)
-    opt_dis = optim.Adam(net.discriminator.parameters(), lr=lr, 
-            weight_decay=weight_decay, betas=betas)
+    opt_dis = optim.Adam(net.discriminator.parameters(), lr=lr, weight_decay=weight_decay, betas=betas) 
+    itr = 0
+    if args.iter is not None:
+       net = load_model(net, args.adda_net_file + '_' + str(args.iter) + '.pth')
+       opt_net = load_opt(opt_net, args.adda_net_file + '_opt_net_' + str(args.iter) + '.pth')
+       opt_dis = load_opt(opt_dis, args.adda_net_file + '_opt_dis_' + str(args.iter) + '.pth')
+       itr = args.iter
+    
 
     ##############
     # Train Adda #
     ##############
     
-    for epoch in range(num_epoch):
-        err = train(train_src_data, train_tgt_data, net, opt_net, opt_dis, epoch) 
+    for epoch in range(itr, num_epoch):
+        err = train(train_src_data, train_tgt_data, net, opt_net, opt_dis, epoch)
+        if epoch % args.numSave == 0:
+            save_model(net, args.adda_net_file + '_' + str(epoch) + '.pth')
+            save_opt(opt_net, args.adda_net_file + '_opt_net_' + str(epoch) + '.pth')
+            save_opt(opt_dis, args.adda_net_file + '_opt_dis_' + str(epoch) + '.pth')
         #if err == -1:
         #    print("No suitable discriminator")
         #    break
@@ -173,8 +181,7 @@ def train_adda(src, tgt, model, num_cls, num_epoch=200,
     # Save Model #
     ##############
     os.makedirs(outdir, exist_ok=True)
-    outfile = join(outdir, 'adda_{:s}_net_{:s}_{:s}.pth'.format(
-        model, src, tgt))
+    outfile = args.adda_net_file + '_final.pth'#join(outdir, 'adda_{:s}_net_{:s}_{:s}.pth'.format(model, src, tgt))
     print('Saving to', outfile)
     net.save(outfile)
 

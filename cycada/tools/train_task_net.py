@@ -17,7 +17,7 @@ from torch.autograd import Variable
 from ..models.models import get_model
 from ..data.data_loader import load_data
 from .test_task_net import test
-from .util import make_variable
+from .util import make_variable, save_model, save_opt, load_opt, load_model
 
 def train_epoch(loader, net, opt_net, epoch):
     log_interval = 100 # specifies how often to display
@@ -54,7 +54,7 @@ def train_epoch(loader, net, opt_net, epoch):
             print('  Acc: {:.2f}'.format(acc))
 
 
-def train(data, datadir, model, num_cls, outdir='', 
+def train(data, datadir, model, num_cls, args, outdir='', 
         num_epoch=100, batch=128, 
         lr=1e-4, betas=(0.9, 0.999), weight_decay=0):
     """Train a classification net and evaluate on test set."""
@@ -86,16 +86,23 @@ def train(data, datadir, model, num_cls, outdir='',
     ###################
     # Setup Optimizer #
     ###################
-    opt_net = optim.Adam(net.parameters(), lr=lr, betas=betas, 
-            weight_decay=weight_decay)
-    
+    opt_net = optim.Adam(net.parameters(), lr=lr, betas=betas, weight_decay=weight_decay)
+    itr = 0
+    if args.iter is not None:
+       net = load_model(net, args.src_net_file + '_' + str(args.iter) + '.pth')
+       opt_net = load_opt(opt_net, args.src_net_file + '_opt_net_' + str(args.iter) + '.pth')
+       itr = args.iter
+   
     #########
     # Train #
     #########
     print('Training {} model for {}'.format(model, data))
-    for epoch in range(num_epoch):
+    for epoch in range(itr, num_epoch):
         train_epoch(train_data, net, opt_net, epoch)
     
+        if epoch % args.numSave == 0:
+            save_model(net, args.src_net_file + '_' + str(epoch) + '.pth')
+            save_opt(opt_net, args.src_net_file + '_opt_net_' + str(epoch) + '.pth') 
     ########
     # Test #
     ########
@@ -107,7 +114,8 @@ def train(data, datadir, model, num_cls, outdir='',
     # Save net #
     ############
     os.makedirs(outdir, exist_ok=True)
-    outfile = join(outdir, '{:s}_net_{:s}.pth'.format(model, data))
+    outfile = args.src_net_file + '_final.pth'#join(outdir, 'src_{:s}_net_{:s}_{:s}.pth'.format(model, src, tgt))
+
     print('Saving to', outfile)
     net.save(outfile)
 

@@ -31,6 +31,8 @@ parser.add_argument('--pe', dest='pixLevEpochs', type=int, default=100)
 parser.add_argument('--fe', dest='featLevEpochs', type=int, default=200)
 parser.add_argument('--plr', dest='pixLR', type=float, default=1e-4)
 parser.add_argument('--flr', dest='featLR', type=float, default=1e-5)
+parser.add_argument('--iter', dest='iter', type=int, default=None)
+parser.add_argument('--ns', dest='numSave', type=int, default=50)
 
 args = parser.parse_args()
 
@@ -70,10 +72,11 @@ src_num_epoch = args.pixLevEpochs
 adda_num_epoch = args.featLevEpochs
 
 src_datadir = join(datadir, src)
-src_net_file = join(outdir, '{}_net_{}.pth'.format(model, src)) 
-adda_net_file = join(outdir, 'adda_{:s}_net_{:s}_{:s}.pth'
-        .format(model, src, tgt))
+args.src_net_file = join(outdir, '{}_net_{}'.format(model, src))          
+args.adda_net_file = join(outdir, 'adda_{:s}_net_{:s}_{:s}'.format(model, src, tgt))
 
+src_net_file = args.src_net_file + '_final.pth'
+adda_net_file = args.adda_net_file + '_final.pth'
 
 #######################
 # 1. Train Source Net #
@@ -83,7 +86,7 @@ if os.path.exists(src_net_file):
     print('Skipping source net training, exists:', src_net_file)
 else:
     
-    train_source(src, src_datadir, model, num_cls, 
+    train_source(src, src_datadir, model, num_cls, args, 
             outdir=outdir, num_epoch=src_num_epoch, batch=batch, 
             lr=src_lr, betas=betas, weight_decay=weight_decay)
 
@@ -95,7 +98,7 @@ else:
 if os.path.exists(adda_net_file):
     print('Skipping adda training, exists:', adda_net_file)
 else:
-    train_adda(src, tgt, model, num_cls, num_epoch=adda_num_epoch, 
+    train_adda(src, tgt, model, num_cls, args, num_epoch=adda_num_epoch, 
             batch=batch, datadir=datadir,
             outdir=outdir, src_weights=src_net_file, 
             lr=adda_lr, betas=betas, weight_decay=weight_decay)
