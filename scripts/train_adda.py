@@ -16,9 +16,22 @@ from cycada.tools.train_adda_net import train_adda
 import torch
 import numpy as np
 import argparse
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--s', dest='src', type=str, default='usps2mnist')
 parser.add_argument('--t', dest='tgt', type=str, default='mnist')
+parser.add_argument('--b', dest='batchSize', type=int, default=128)
+parser.add_argument('--wd', dest='weight_decay', type=int, default=0)
+parser.add_argument('--dd', dest='datadir', type=str, default='/home/ubuntu/anthro-efs/anthro-backup-virginia/data')
+parser.add_argument('--mn', dest='modelName', type=str, default='model_A')
+parser.add_argument('--m', dest='model', type=str, default='LeNet')
+parser.add_argument('--nc', dest='numClasses', type=int, default=10)
+parser.add_argument('--pe', dest='pixLevEpochs', type=int, default=100)
+parser.add_argument('--fe', dest='featLevEpochs', type=int, default=200)
+parser.add_argument('--plr', dest='pixLR', type=float, default=1e-4)
+parser.add_argument('--flr', dest='featLR', type=float, default=1e-5)
+
 args = parser.parse_args()
 
 # set random seed to 4325 
@@ -28,7 +41,7 @@ np.random.seed(4325)
 ###################################
 # Set to your preferred data path #
 ###################################
-datadir = '/home/ubuntu/anthro-efs/anthro-backup-virginia/data'
+datadir = args.datadir
 ###################################
 
 # Choose GPU ID
@@ -38,28 +51,26 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 src = args.src
 tgt = args.tgt
 
-iteration = 1 #'no_cycle' 
-
 base_src = src.split('2')[0]
 
-model = 'LeNet'
-num_cls = 10
+model = args.model
+num_cls = args.numClasses
 
 # Output directory
-outdir = 'results/{}_to_{}/iter_{}'.format(src, tgt, iteration)
-#outdir = 'results/{}_to_{}'.format(src, tgt)
+outdir = 'results/{}_to_{}/{}'.format(src, tgt, args.modelName)
 
 # Optimization Params
 betas = (0.9, 0.999) # Adam default
-weight_decay = 0 # Adam default
-batch = 128
+weight_decay = args.weight_decay # Adam default
+batch = args.batchSize
 
-src_lr = 1e-4
-src_num_epoch = 100
+src_lr = args.pixLR
+adda_lr = args.featLR
+src_num_epoch = args.pixLevEpochs
+adda_num_epoch = args.featLevEpochs
+
 src_datadir = join(datadir, src)
 src_net_file = join(outdir, '{}_net_{}.pth'.format(model, src)) 
-adda_num_epoch = 100
-adda_lr = 1e-5
 adda_net_file = join(outdir, 'adda_{:s}_net_{:s}_{:s}.pth'
         .format(model, src, tgt))
 
@@ -67,6 +78,7 @@ adda_net_file = join(outdir, 'adda_{:s}_net_{:s}_{:s}.pth'
 #######################
 # 1. Train Source Net #
 #######################
+
 if os.path.exists(src_net_file):
     print('Skipping source net training, exists:', src_net_file)
 else:
