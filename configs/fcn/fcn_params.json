@@ -10,7 +10,7 @@
 	"momentum": 0.9,
 	"downscale": 1,
 	"augmentation": false,
-	"train_tf_interval": 50,
+	"train_tf_interval": 10,
 	"val_epoch_interval": 5,
 	"test_epoch_interval": 10,
 	"crop_size": 120,

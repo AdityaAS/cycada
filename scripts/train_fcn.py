@@ -18,7 +18,9 @@ from tensorboardX import SummaryWriter
 from PIL import Image
 from copy import copy
 from torch.autograd import Variable
+
 print(os.getcwd())
+
 import shutil
 from cycada.data.data_loader import get_fcn_dataset as get_dataset
 from cycada.models import get_model
@@ -120,9 +122,10 @@ def main(config_path):
     for epoch in range(config["num_epochs"]):
         if config["phase"] == 'train':
             net.train()
-            train_loader = iter(train_loader)
+            iterator = iter(train_loader)
             # Epoch train
-            for im, label in tqdm(train_loader):
+            print("Epoch_train!")
+            for im, label in tqdm(iterator):
                 iteration += 1
                 # Clear out gradients
                 opt.zero_grad()
@@ -147,6 +150,8 @@ def main(config_path):
                 data_metric['train']['recalls'].append(rc.item())
                 # step gradients
                 opt.step()
+                
+                print(iteration, config["train_tf_interval"])
 
                 # Train visualizations - each iteration
                 if iteration % config["train_tf_interval"] == 0:
@@ -166,10 +171,11 @@ def main(config_path):
             writer.add_image('{}_image_data'.format('trainepoch'), imutil, global_step=epoch)
 
             # Epoch Val
-            if epoch % config["val_epoch_interval"]:
+            if epoch % config["val_epoch_interval"] == 0:
                 net.eval()
-                val_loader = iter(val_loader)
-                for im, label in tqdm(val_loader):
+                print("Val_epoch!")
+                iterator = iter(val_loader)
+                for im, label in tqdm(iterator):
                     # load data/label
                     im = make_variable(im, requires_grad=False)
                     label = make_variable(label, requires_grad=False)
@@ -193,10 +199,11 @@ def main(config_path):
                 writer.add_image('{}_image_data'.format('val'), imutil, global_step=epoch)
 
             # Epoch Test
-            if epoch % config["test_epoch_interval"]:
+            if epoch % config["test_epoch_interval"] == 0:
                 net.eval()
-                test_loader = iter(test_loader)
-                for im, label in tqdm(test_loader):
+                print("Test_epoch!")
+                iterator = iter(test_loader)
+                for im, label in tqdm(iterator):
                     # load data/label
                     im = make_variable(im, requires_grad=False)
                     label = make_variable(label, requires_grad=False)
