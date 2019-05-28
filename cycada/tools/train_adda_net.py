@@ -26,14 +26,14 @@ def train(loader_src, loader_tgt, net, opt_net, opt_dis, epoch):
     joint_loader = zip(loader_src, loader_tgt)
       
     net.train()
-   
+     
     last_update = -1
+
     for batch_idx, ((data_s, _), (data_t, _)) in enumerate(joint_loader):
         
         # log basic adda train info
         info_str = "[Train Adda] Epoch: {} [{}/{} ({:.2f}%)]".format(
             epoch, batch_idx*len(data_t), N, 100 * batch_idx / N)
-   
         ########################
         # Setup data variables #
         ########################
@@ -82,7 +82,7 @@ def train(loader_src, loader_tgt, net, opt_net, opt_dis, epoch):
         if acc.item() > 0.6:
             
             last_update = batch_idx
-        
+       
             # zero out optimizer gradients
             opt_dis.zero_grad()
             opt_net.zero_grad()
@@ -126,8 +126,9 @@ def train_adda(src, tgt, model, num_cls, num_epoch=200,
     ###########################
 
     # setup cuda
+    
     if torch.cuda.is_available():
-        kwargs = {'num_workers': 1, 'pin_memory': True}
+        kwargs = {'num_workers': batch, 'pin_memory': True}
     else:
         kwargs = {}
 
@@ -161,11 +162,12 @@ def train_adda(src, tgt, model, num_cls, num_epoch=200,
     ##############
     # Train Adda #
     ##############
+    
     for epoch in range(num_epoch):
         err = train(train_src_data, train_tgt_data, net, opt_net, opt_dis, epoch) 
-        if err == -1:
-            print("No suitable discriminator")
-            break
+        #if err == -1:
+        #    print("No suitable discriminator")
+        #    break
        
     ##############
     # Save Model #

@@ -7,13 +7,19 @@ sys.path.append('.')
 from cycada.data.adda_datasets import AddaDataLoader
 from cycada.data.cyclegta5 import CycleGTA5
 from cycada.data.usps import USPS
+from cycada.data.mnist import MNIST
+from cycada.data.svhn import SVHN
 from cycada.data.cyclegan import Svhn2MNIST, Usps2Mnist, Mnist2Usps
 from cycada.tools.train_task_net import train as train_source
 from cycada.tools.test_task_net import load_and_test_net
 from cycada.tools.train_adda_net import train_adda
 import torch
 import numpy as np
-
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('--s', dest='src', type=str, default='usps2mnist')
+parser.add_argument('--t', dest='tgt', type=str, default='mnist')
+args = parser.parse_args()
 
 # set random seed to 4325 
 # to reproduce the exact numbers
@@ -26,11 +32,12 @@ datadir = '/home/ubuntu/anthro-efs/anthro-backup-virginia/data'
 ###################################
 
 # Choose GPU ID
-os.environ['CUDA_VISIBLE_DEVICES'] = '1' 
+os.environ['CUDA_VISIBLE_DEVICES'] = '0' 
 
 # Problem Params
-src = 'usps2mnist'
-tgt = 'mnist'
+src = args.src
+tgt = args.tgt
+
 iteration = 1 #'no_cycle' 
 
 base_src = src.split('2')[0]
@@ -51,7 +58,7 @@ src_lr = 1e-4
 src_num_epoch = 100
 src_datadir = join(datadir, src)
 src_net_file = join(outdir, '{}_net_{}.pth'.format(model, src)) 
-adda_num_epoch = 200
+adda_num_epoch = 100
 adda_lr = 1e-5
 adda_net_file = join(outdir, 'adda_{:s}_net_{:s}_{:s}.pth'
         .format(model, src, tgt))
@@ -63,6 +70,7 @@ adda_net_file = join(outdir, 'adda_{:s}_net_{:s}_{:s}.pth'
 if os.path.exists(src_net_file):
     print('Skipping source net training, exists:', src_net_file)
 else:
+    
     train_source(src, src_datadir, model, num_cls, 
             outdir=outdir, num_epoch=src_num_epoch, batch=batch, 
             lr=src_lr, betas=betas, weight_decay=weight_decay)

@@ -22,11 +22,13 @@ from .util import make_variable
 def train_epoch(loader, net, opt_net, epoch):
     log_interval = 100 # specifies how often to display
     net.train()
+
     for batch_idx, (data, target) in enumerate(loader):
 
         # make data variables
         data = make_variable(data, requires_grad=False)
         target = make_variable(target, requires_grad=False)
+        #import pdb;pdb.set_trace()
         
         # zero out gradients
         opt_net.zero_grad()
@@ -58,8 +60,8 @@ def train(data, datadir, model, num_cls, outdir='',
     """Train a classification net and evaluate on test set."""
 
     # Setup GPU Usage
-    if torch.cuda.is_available(): 
-        kwargs = {'num_workers': 1, 'pin_memory': True}
+    if torch.cuda.is_available():  
+        kwargs = {'num_workers': batch, 'pin_memory': True}
     else:
         kwargs = {}
 

@@ -19,10 +19,16 @@ def load_data(name, dset, batch=64, rootdir='', num_channels=3,
                 image_size, num_channels, download=download)
         tgt_dataset = get_dataset(name[1], join(rootdir, name[1]), dset, 
                 image_size, num_channels, download=download)
+        if src_dataset is None:
+            print("Data is not loaded, folder missing {}".format(name[0]))
+        if tgt_dataset is None:
+            print("Data is not loaded, folder missing {}".format(name[1]))
         dataset = AddaDataset(src_dataset, tgt_dataset)
     else:
         dataset = get_dataset(name, rootdir, dset, image_size, num_channels,
                 download=download)
+        if dataset is None:
+            print("Data is not loaded, folder missing {}".format(name))
     if len(dataset) == 0:
         return None
     loader = torch.utils.data.DataLoader(dataset, batch_size=batch, 

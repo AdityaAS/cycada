@@ -1,3 +1,7 @@
+log.txt
+output.file
+logs.txt
+results*
 runs
 __pycache__/
 cycada/*/__pycache__/
