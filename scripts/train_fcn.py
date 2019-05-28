@@ -1,6 +1,7 @@
 import sys
 sys.path.append('./')
 import logging
+import os
 from os.path import join, exists
 from collections import deque
 
@@ -18,6 +19,7 @@ from PIL import Image
 from copy import copy
 from torch.autograd import Variable
 print(os.getcwd())
+import shutil
 from cycada.data.data_loader import get_fcn_dataset as get_dataset
 from cycada.models import get_model
 from cycada.models.models import models
@@ -44,9 +46,23 @@ def main(config_path):
     config_logging()
     
     # Initialize SummaryWriter - For tensorboard visualizations
-    logdir = 'runs/{:s}/{:s}/{:s}'.format(config["model"], config["dataset"], 'v'.format(config.version))
+    logdir = 'runs/{:s}/{:s}/{:s}/{:s}'.format(config["model"], config["dataset"], 'v{}'.format(config["version"]), 'tflogs')
     logdir = logdir + "/"
-    print(logdir)
+
+    checkpointdir = join('runs', config["model"], config["dataset"], 'v{}'.format(config["version"]), 'checkpoints')
+
+    print("Logging directory: {}".format(logdir))
+    print("Checkpoint directory: {}".format(checkpointdir))
+
+    # join(config["output"], config["dataset"], config["dataset"] + '_' + config["model"], 
+    #                 'v{}'.format(config["version"]))
+
+    for path in [checkpointdir, logdir]:
+        if not exists(path):
+            os.makedirs(path)
+        elif not config["fine_tune"]:
+            shutil.rmtree(path)
+            os.makedirs(path)
 
     writer = SummaryWriter(logdir)
 
@@ -92,7 +108,6 @@ def main(config_path):
                                             collate_fn=collate_fn,
                                             pin_memory=pin_memory)
 
-    iteration = 0
     data_metric = {'train': None, 'val' : None, 'test' : None}
     metrics = {'losses': deque(maxlen=10), 'ious': deque(maxlen=10), 'recalls': deque(maxlen=10)}
     
@@ -100,14 +115,15 @@ def main(config_path):
     data_metric['val'] = copy(metrics)
     data_metric['test'] = copy(metrics)
 
-    max_epochs = math.ceil(config["iterations"]/config["batch_size"])
-
-    for epochs in range(max_epochs):
+    iteration = 0
+    
+    for epoch in range(config["num_epochs"]):
         if config["phase"] == 'train':
             net.train()
             train_loader = iter(train_loader)
+            # Epoch train
             for im, label in tqdm(train_loader):
-
+                iteration += 1
                 # Clear out gradients
                 opt.zero_grad()
                 
@@ -131,22 +147,29 @@ def main(config_path):
                 data_metric['train']['recalls'].append(rc.item())
                 # step gradients
                 opt.step()
-                
-                #writer
-                vizz = preprocess_viz(im, preds, label)
-                writer.add_scalar('train/loss', np.mean(data_metric['train']['losses']), iteration)
-                writer.add_scalar('train/IOU', np.mean(data_metric['train']['ious']), iteration)
-                writer.add_scalar('train/recall', np.mean(data_metric['train']['recalls']), iteration)
-                imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
-                writer.add_image('{}_image_data'.format('train'), imutil, iteration)
-                iteration = iteration + 1
-            
-            print(epochs, loss)
 
-            # Run val epoch for every 5 train epochs
-            if epochs%1 == 0:
+                # Train visualizations - each iteration
+                if iteration % config["train_tf_interval"] == 0:
+                    vizz = preprocess_viz(im, preds, label)
+                    writer.add_scalar('train/loss', loss.item(), iteration)
+                    writer.add_scalar('train/IOU', iou.item(), iteration)
+                    writer.add_scalar('train/recall', rc.item(), iteration)
+                    imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
+                    writer.add_image('{}_image_data'.format('train'), imutil, iteration)
+
+            # Train visualizations - per epoch
+            vizz = preprocess_viz(im, preds, label)
+            writer.add_scalar('trainepoch/loss', np.mean(data_metric['train']['losses']), global_step=epoch)
+            writer.add_scalar('trainepoch/IOU', np.mean(data_metric['train']['ious']), global_step=epoch)
+            writer.add_scalar('trainepoch/recall', np.mean(data_metric['train']['recalls']), global_step=epoch)
+            imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
+            writer.add_image('{}_image_data'.format('trainepoch'), imutil, global_step=epoch)
+
+            # Epoch Val
+            if epoch % config["val_epoch_interval"]:
                 net.eval()
-                for im, label in val_loader:
+                val_loader = iter(val_loader)
+                for im, label in tqdm(val_loader):
                     # load data/label
                     im = make_variable(im, requires_grad=False)
                     label = make_variable(label, requires_grad=False)
@@ -154,7 +177,6 @@ def main(config_path):
                     # forward pass and compute loss
                     preds = net(im)
                     loss = supervised_loss(preds, label)
-
                     iou = IoU(preds, label)
                     rc = recall(preds, label)
 
@@ -162,17 +184,19 @@ def main(config_path):
                     data_metric['val']['ious'].append(iou.item())
                     data_metric['val']['recalls'].append(rc.item())
 
-                    vizz = preprocess_viz(im, preds, label)
-                    writer.add_scalar('val/loss', np.mean(data_metric['val']['losses']), iteration)
-                    writer.add_scalar('val/IOU', np.mean(data_metric['val']['ious']), iteration)
-                    writer.add_scalar('val/Recall', np.mean(data_metric['val']['recalls']), iteration)
-                    imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
-                    writer.add_image('{}_image_data'.format('val'), imutil, iteration)
+                # Val visualizations
+                vizz = preprocess_viz(im, preds, label)
+                writer.add_scalar('valepoch/loss', np.mean(data_metric['val']['losses']), global_step=epoch)
+                writer.add_scalar('valepoch/IOU', np.mean(data_metric['val']['ious']), global_step=epoch)
+                writer.add_scalar('valepoch/Recall', np.mean(data_metric['val']['recalls']), global_step=epoch)
+                imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
+                writer.add_image('{}_image_data'.format('val'), imutil, global_step=epoch)
 
-            # Run test epoch for every 50 train epochs
-            if epochs % 50 == 0:
+            # Epoch Test
+            if epoch % config["test_epoch_interval"]:
                 net.eval()
-                for im, label in test_loader:
+                test_loader = iter(test_loader)
+                for im, label in tqdm(test_loader):
                     # load data/label
                     im = make_variable(im, requires_grad=False)
                     label = make_variable(label, requires_grad=False)
@@ -187,17 +211,19 @@ def main(config_path):
                     data_metric['test']['ious'].append(iou.item())
                     data_metric['test']['recalls'].append(rc.item())
 
-            if step is not None and epochs % step == 0:
+                # Test visualizations
+                writer.add_scalar('testepoch/loss', np.mean(data_metric['test']['losses']), global_step=epoch)
+                writer.add_scalar('testepoch/IOU', np.mean(data_metric['test']['ious']), global_step=epoch)
+                writer.add_scalar('testepoch/Recall', np.mean(data_metric['test']['recalls']), global_step=epoch)
+
+            if config["step"] is not None and epoch % config["step"] == 0:
                 logging.info('Decreasing learning rate by 0.1 factor')
                 step_lr(optimizer, 0.1)
 
-            if epochs % config.snapshot == 0:
-                torch.save(net.state_dict(), join(config.outputdir, config.dataset, config.dataset + '_' + config.model, 
-                    config.version, 'iter{}.pth'.format(iteration)))
+            if epoch % config["checkpoint_interval"] == 0:
+                torch.save(net.state_dict(), join(checkpointdir, 'iter{}.pth'.format(epoch)))
 
-            if epochs >= max_epochs - 1:
-                logging.info('Optimization complete.')
-                break           
+    logging.info('Optimization complete.')
 
 if __name__ == '__main__':
     p = sys.argv[1]
