@@ -54,7 +54,7 @@ optional arguments:
    * The snapshots will be stored in `cyclegan/cycada_svhn2mnist_noIdentity`. Inside `test_cycada.sh` set the epoch value to the epoch you wish to use and then run the script to generate 50 transformed images (to preview quickly) or run `test_cycada.sh all` to generate the full ~73K SVHN images as MNIST digits. 
    * Results are stored inside `cyclegan/results/cycada_svhn2mnist_noIdentity/train_75/images`. 
    * Note we use a dataset of mnist_svhn and for this experiment run in the reverse direction (BtoA), so the source (SVHN) images translated to look like MNIST digits will be stored as `[label]_[imageId]_fake_B.png`. Hence when images from this directory will be loaded later we will only images which match that naming convention.
---!>
+-->
 
 ## Train Feature Adaptation for Semantic Segmentation
 * Download [GTA DRN-26 model](https://people.eecs.berkeley.edu/~jhoffman/cycada/drn26-gta5-iter115000.pth)
