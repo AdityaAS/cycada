@@ -14,7 +14,8 @@ A [pytorch](http://pytorch.org/) implementation of [CyCADA](https://arxiv.org/pd
   * Download [GTA as CityScapes](http://efrosgans.eecs.berkeley.edu/cyclegta/cyclegta.zip) images (16GB).
 * Place them in folder any folder separately say $stylizedPATH
 * Run the code in scripts/train_adda.py as 
-'''
+
+```
 python scripts/train_adda.py --dd=$stylizedPATH --mn=$modelName --s=$sourceDatasetName --t=targetDatasetName
 
 python scripts/train_adda.py --help                              
@@ -40,7 +41,7 @@ optional arguments:
   --flr FEATLR
   --iter ITER
   --ns NUMSAVE
-''' 
+```
 
 <!-- ## Train image adaptation only (digits)
 * Image adaptation builds on the work on [CycleGAN](https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix). The submodule in this repo is a fork which also includes the semantic consistency loss. 
