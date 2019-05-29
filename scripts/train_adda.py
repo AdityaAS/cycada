@@ -6,6 +6,7 @@ sys.path.append('.')
 
 from cycada.data.adda_datasets import AddaDataLoader
 from cycada.data.cyclegta5 import CycleGTA5
+from cycada.data import *
 from cycada.data.usps import USPS
 from cycada.data.mnist import MNIST
 from cycada.data.svhn import SVHN
