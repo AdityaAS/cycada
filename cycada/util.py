@@ -28,7 +28,7 @@ def config_logging(logfile=None):
         del config['root']['handlers'][-1]
     else:
         config['handlers']['file_handler']['filename'] = logfile
-    logging.config.dictConfig(config)
+   # logging.config.dictConfig(config)
 
 
 def to_tensor_raw(im):

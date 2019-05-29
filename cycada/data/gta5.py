@@ -42,8 +42,9 @@ class GTA5(data.Dataset):
 
     
     def collect_ids(self):
-        splits = scipy.io.loadmat(os.path.join(self.root, 'split.mat'))
-        ids = splits['{}Ids'.format(self.split)].squeeze()
+        # splits = scipy.io.loadmat(os.path.join(self.root, 'split.mat'))
+        # ids = splits['{}Ids'.format(self.split)].squeeze()
+        ids = np.load(os.path.join(self.root, 'splits.npy')).item()[self.split]
         return ids
 
     def img_path(self, id):
