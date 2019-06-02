@@ -51,7 +51,6 @@ class AddaDataLoader(object):
         self.num += 1
         return img_src, img_tgt, label_src, label_tgt
 
-
     def __len__(self):
         return min(len(self.source), len(self.target))
 
@@ -64,6 +63,7 @@ class AddaDataLoader(object):
                     halfcrop=self.half_crop, flip=True)
         else:
             collate_fn=torch.utils.data.dataloader.default_collate
+        
         self.loader_src = torch.utils.data.DataLoader(self.source, 
                 batch_size=batch_size, shuffle=shuffle, num_workers=num_workers,
                 collate_fn=collate_fn, pin_memory=True)

@@ -29,6 +29,10 @@ from cycada.util import config_logging
 from cycada.util import to_tensor_raw
 from cycada.tools.util import make_variable
 
+from cycada.data.color2blk import color2blk
+from cycada.data.blk import blk
+
+
 def check_label(label, num_cls):
     "Check that no labels are out of range"
     label_classes = np.unique(label.numpy().flatten())
@@ -160,7 +164,7 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
 
     loader = AddaDataLoader(net.transform, dataset, datadir, downscale, 
             crop_size=crop_size, half_crop=half_crop,
-            batch_size=batch, shuffle=True, num_workers=2)
+            batch_size=batch, shuffle=True, num_workers=0)
     print('dataset', dataset)
 
     # Class weighted loss?
