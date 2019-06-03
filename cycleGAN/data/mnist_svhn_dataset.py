@@ -58,9 +58,11 @@ class MnistSvhnDataset(BaseDataset):
         #    A_img = invert(A_img)
         A_img = A_img.resize((32, 32))
         A_img = A_img.convert('RGB')
+        
         #A_img = np.expand_dims(np.array(A_img), 0)
         #print('mnist after expand dims:', np.array(A_img).shape)
         #A_img = np.transpose(A_img, (1, 2, 0))
+
         A_img = self.transform(A_img)
         A_path = '%01d_%05d.png' % (A_label, index)
 

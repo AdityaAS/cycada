@@ -1,6 +1,7 @@
 __pycache__/
 cycada/*/__pycache__/
 vcycada/*
-scripts/.ipynb_checkpoints/
 *.pyc
-runs
+runs/*
+results/*
+*.ipynb_checkpoints

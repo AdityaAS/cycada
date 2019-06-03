@@ -44,9 +44,6 @@ def main(config_path):
     with open(config_path, 'r') as f:
         config = json.load(f)
 
-
-
-    
     os.environ['CUDA_VISIBLE_DEVICES'] = config["gpu"]
 
     config_logging()
@@ -56,6 +53,7 @@ def main(config_path):
     logdir = logdir + "/"
 
     checkpointdir = join('runs', config["model"], config["dataset"], 'v{}'.format(config["version"]), 'checkpoints')
+
 
     print("Logging directory: {}".format(logdir))
     print("Checkpoint directory: {}".format(checkpointdir))
@@ -71,6 +69,7 @@ def main(config_path):
             os.makedirs(path)
 
     writer = SummaryWriter(logdir)
+
 
     # Get appropriate model based on config parameters
     net = get_model(config["model"], num_cls=config["num_cls"])
@@ -132,7 +131,6 @@ def main(config_path):
             # Epoch train
             print("Epoch_train!")
             for im, label in tqdm(iterator):
-                break
                 iteration += 1
                 # Clear out gradients
                 opt.zero_grad()
@@ -183,12 +181,14 @@ def main(config_path):
             writer.add_scalar('trainepoch/recall', np.mean(data_metric['train']['recalls']), global_step=epoch)
             imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
             writer.add_image('{}_image_data'.format('trainepoch'), imutil, global_step=epoch)
+
             print("Loss :{}".format(np.mean(data_metric['train']['losses'])))
             print("IOU :{}".format(np.mean(data_metric['train']['ious'])))
             print("recall :{}".format(np.mean(data_metric['train']['recalls'])))
+
             if epoch % config["checkpoint_interval"] == 0:
                 torch.save(net.state_dict(), join(checkpointdir, 'iter{}.pth'.format(epoch)))	
-            # Epoch Val
+
             if epoch % config["val_epoch_interval"] == 0:
                 net.eval()
                 print("Val_epoch!")
@@ -207,7 +207,7 @@ def main(config_path):
                     data_metric['val']['losses'].append(loss.item())
                     data_metric['val']['ious'].append(iou.item())
                     data_metric['val']['recalls'].append(rc.item())
-                print(np.mean(data_metric['val']['ious']))
+                #print(np.mean(data_metric['val']['ious']))
                 # Val visualizations
                 vizz = preprocess_viz(im, preds, label)
                 writer.add_scalar('valepoch/loss', np.mean(data_metric['val']['losses']), global_step=epoch)
@@ -244,7 +244,6 @@ def main(config_path):
             if config["step"] is not None and epoch % config["step"] == 0:
                 logging.info('Decreasing learning rate by 0.1 factor')
                 step_lr(optimizer, 0.1)
-
 
     logging.info('Optimization complete.')
 

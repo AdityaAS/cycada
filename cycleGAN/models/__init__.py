@@ -20,6 +20,8 @@ def create_model(opt):
         model = CycleGANSemanticModel()
     else:
         raise NotImplementedError('model [%s] not implemented.' % opt.model)
+
     model.initialize(opt)
+
     print("model [%s] was created" % (model.name()))
     return model

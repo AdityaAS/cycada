@@ -31,6 +31,7 @@ def config_logging(logfile=None):
     logging.config.dictConfig(config)
 
 
+# How is this different from torchvision.transforms.ToTensor()
 def to_tensor_raw(im):
     return torch.from_numpy(np.array(im, np.int64, copy=False))
 
