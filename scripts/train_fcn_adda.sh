@@ -37,11 +37,12 @@ resdir="results/${src}_to_${tgt}/adda_sgd/${weight_share}_nolsgan_${discrim}"
 # model='drn26'
 # baseiter=115000
 model='fcn8s'
-baseiter=100000
+baseiter=30000
 
 num_cls=2
 
-base_model="base_models/${model}-${src}-iter${baseiter}.pth"
+base_model="iter49.pth"
+#"${resdir}/${model}/lr${lr}_crop${crop}_ld${lambda_d}_lg${lambda_g}_momentum${momentum}/net-iter${baseiter}.pth"
 outdir="${resdir}/${model}/lr${lr}_crop${crop}_ld${lambda_d}_lg${lambda_g}_momentum${momentum}"
 
 # Run python script #
@@ -53,5 +54,5 @@ CUDA_VISIBLE_DEVICES=${gpu} python scripts/train_fcn_adda.py \
     --model ${model} \
     --"${weight_share}" --${discrim} --no_lsgan \
     --max_iter ${max_iter} --crop_size ${crop} --batch ${batch} \
-    --snapshot $snapshot --num_cls $num_cls
-#    --weights_init ${base_model} \
+    --snapshot $snapshot --num_cls $num_cls \
+    --weights_init ${base_model} --baseiter ${baseiter}

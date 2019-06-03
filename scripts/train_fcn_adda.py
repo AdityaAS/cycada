@@ -95,6 +95,9 @@ def norm(tensor):
     tensor = (tensor - tensor.min())/r
     return tensor
 
+def mxAxis(tensor):
+    _, indices = tensor.max(0)
+    return indices
 
 @click.command()
 @click.argument('output')
@@ -103,6 +106,7 @@ def norm(tensor):
 @click.option('--lr', '-l', default=0.0001)
 @click.option('--momentum', '-m', default=0.9)
 @click.option('--batch', default=1)
+@click.option('--baseiter', default=0)
 @click.option('--snapshot', '-s', default=5000)
 @click.option('--downscale', type=int)
 @click.option('--crop_size', default=None, type=int)
@@ -121,7 +125,7 @@ def norm(tensor):
 @click.option('--discrim_feat/--discrim_score', default=False)
 @click.option('--weights_shared/--weights_unshared', default=False)
 
-def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weights, gpu, 
+def main(output, dataset, datadir, lr, momentum, baseiter, snapshot, downscale, cls_weights, gpu, 
         weights_init, num_cls, lsgan, max_iter, lambda_d, lambda_g,
         train_discrim_only, weights_discrim, crop_size, weights_shared,
         discrim_feat, half_crop, batch, model):
@@ -155,6 +159,8 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
                 weights_init=weights_init, output_last_ft=discrim_feat, finetune=True)
         net_src.eval()
 
+    net.load_state_dict(torch.load(weights_init))
+ 
     odim = 1 if lsgan else 2
     idim = num_cls if not discrim_feat else 4096
     print('discrim_feat', discrim_feat, idim)
@@ -185,9 +191,9 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
     opt_rep = torch.optim.SGD(net.parameters(), lr=lr, 
             momentum=momentum, weight_decay=0.0005)
 
-    iteration = 0
+    iteration = baseiter
     num_update_g = 0
-    last_update_g = -1
+    last_update_g = iteration - 1
     losses_super_s = deque(maxlen=100)
     losses_super_t = deque(maxlen=100)
     losses_dis = deque(maxlen=100)
@@ -381,9 +387,9 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
                 im_s = Image.fromarray(np.uint8(norm(im_s[0]).permute(1, 2, 0).cpu().data.numpy()*255))
                 im_t = Image.fromarray(np.uint8(norm(im_t[0]).permute(1, 2, 0).cpu().data.numpy()*255))
                 label_s = Image.fromarray(np.uint8(label_s[0].cpu().data.numpy()*255))
-                score_s = Image.fromarray(np.uint8(score_s[0, 0].cpu().data.numpy()*255))
                 label_t = Image.fromarray(np.uint8(label_t[0].cpu().data.numpy()*255))
-                score_t = Image.fromarray(np.uint8(score_t[0, 0].cpu().data.numpy()*255))
+                score_s = Image.fromarray(np.uint8(mxAxis(score_s[0]).cpu().data.numpy()*255))
+                score_t = Image.fromarray(np.uint8(mxAxis(score_t[0]).cpu().data.numpy()*255))
 
                 im_s.save(output + "/im_s.png")
                 im_t.save(output + "/im_t.png")

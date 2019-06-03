@@ -1,3 +1,4 @@
+*.pth
 log.txt
 output.file
 logs.txt
