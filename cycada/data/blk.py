@@ -62,15 +62,21 @@ class blk(data.Dataset):
         id = self.ids[index]
         img_path = self.img_path(id)
         label_path = self.label_path(id)
-        img = Image.open(img_path).convert('RGB')
+        img = Image.open(img_path).convert('L')
+        # img_f = np.zeros((img.shape[0], img.shape[1], 3))
+        # img_f[:,:,0] = img
+        # img_f[:,:,1] = img
+        # img_f[:,:,2] = img
+        # img = Image.fromarray(np.uint8(img_f))
         if self.transform is not None:
             img = self.transform(img)
+        img = img.repeat(3,1,1)
         target = Image.open(label_path)
         # if self.remap_labels:
         #     target = np.asarray(target)/255
         #     target = Image.fromarray(target, 'L')
         if self.target_transform is not None:
-            target = self.target_transform(target)
+            target = self.target_transform(target)/255.0
         return img, target
 
     def __len__(self):

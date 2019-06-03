@@ -60,8 +60,8 @@ class color2blk(data.Dataset):
         target = Image.open(label_path)
 
         if self.target_transform is not None:
-            target = self.target_transform(target)
-        import pdb;pdb.set_trace()
+            target = self.target_transform(target)/255.0
+        
         return img, target
 
     def __len__(self):

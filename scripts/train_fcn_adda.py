@@ -22,6 +22,9 @@ from torch.autograd import Variable
 from cycada.data.adda_datasets import AddaDataLoader
 from cycada.data.cyclegta5 import CycleGTA5
 from cycada.data.usps import USPS
+from cycada.data.color2blk import color2blk
+from cycada.data.blk import blk
+
 from cycada.models import get_model
 from cycada.models.models import models
 from cycada.models import VGG16_FCN8s, Discriminator
@@ -29,8 +32,6 @@ from cycada.util import config_logging
 from cycada.util import to_tensor_raw
 from cycada.tools.util import make_variable
 
-from cycada.data.color2blk import color2blk
-from cycada.data.blk import blk
 
 
 def check_label(label, num_cls):
@@ -89,6 +90,12 @@ def seg_accuracy(score, label, num_cls):
     acc = np.diag(hist).sum() / hist.sum()
     return intersections, unions, acc
 
+def norm(tensor):
+    r = tensor.max() - tensor.min()
+    tensor = (tensor - tensor.min())/r
+    return tensor
+
+
 @click.command()
 @click.argument('output')
 @click.option('--dataset', required=True, multiple=True)
@@ -113,7 +120,6 @@ def seg_accuracy(score, label, num_cls):
 @click.option('--train_discrim_only', default=False)
 @click.option('--discrim_feat/--discrim_score', default=False)
 @click.option('--weights_shared/--weights_unshared', default=False)
-
 
 def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weights, gpu, 
         weights_init, num_cls, lsgan, max_iter, lambda_d, lambda_g,
@@ -164,7 +170,7 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
 
     loader = AddaDataLoader(net.transform, dataset, datadir, downscale, 
             crop_size=crop_size, half_crop=half_crop,
-            batch_size=batch, shuffle=True, num_workers=0)
+            batch_size=batch, shuffle=True, num_workers=2)
     print('dataset', dataset)
 
     # Class weighted loss?
@@ -276,7 +282,9 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
             # Optimize Target Network #
             ###########################
            
-            dom_acc_thresh = 60
+            dom_acc_thresh = 55
+
+
 
             if not train_discrim_only and np.mean(accuracies_dom) > dom_acc_thresh:
               
@@ -348,11 +356,13 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
             info_str += ' clsT:{:.2f}'.format(np.mean(losses_super_t))
             writer.add_scalar('loss/supervised/target', np.mean(losses_super_t), iteration)
 
+
             ###########################
             # Log and compute metrics #
             ###########################
             if iteration % 10 == 0 and iteration > 0:
                 
+
                 # compute metrics
                 intersection,union,acc = seg_accuracy(score_t, label_t.data, num_cls) 
                 intersections = np.vstack([intersections[1:,:], intersection[np.newaxis,:]])
@@ -365,7 +375,23 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
                 writer.add_scalar('metrics/acc', np.mean(accuracy), iteration)
                 writer.add_scalar('metrics/mIoU', np.mean(mIoU), iteration)
                 logging.info(info_str)
-                  
+                print(info_str)
+
+                # score_s, score_t, im_s, im_t, label_s, label_t
+                im_s = Image.fromarray(np.uint8(norm(im_s[0]).permute(1, 2, 0).cpu().data.numpy()*255))
+                im_t = Image.fromarray(np.uint8(norm(im_t[0]).permute(1, 2, 0).cpu().data.numpy()*255))
+                label_s = Image.fromarray(np.uint8(label_s[0].cpu().data.numpy()*255))
+                score_s = Image.fromarray(np.uint8(score_s[0, 0].cpu().data.numpy()*255))
+                label_t = Image.fromarray(np.uint8(label_t[0].cpu().data.numpy()*255))
+                score_t = Image.fromarray(np.uint8(score_t[0, 0].cpu().data.numpy()*255))
+
+                im_s.save(output + "/im_s.png")
+                im_t.save(output + "/im_t.png")
+                label_s.save(output + "/label_s.png")
+                label_t.save(output + "/label_t.png")
+                score_s.save(output + "/score_s.png")
+                score_t.save(output + "/score_t.png")
+
             iteration += 1
 
             ################
@@ -392,10 +418,10 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
 
             if iteration - last_update_g >= len(loader):
                 print('No suitable discriminator found -- returning.')
-                torch.save(net.state_dict(), 
-                        '{}/net-iter{}.pth'.format(output, iteration))
-                iteration = max_iter # make sure outside loop breaks
-                break
+                # import pdb;pdb.set_trace()
+                # torch.save(net.state_dict(),'{}/net-iter{}.pth'.format(output, iteration))
+                # iteration = max_iter # make sure outside loop breaks
+                # break
 
     writer.close()
 

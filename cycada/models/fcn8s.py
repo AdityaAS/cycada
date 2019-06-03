@@ -49,7 +49,7 @@ class VGG16_FCN8s(nn.Module):
         ])
 
     def __init__(self, num_cls=19, pretrained=True, weights_init=None, 
-            output_last_ft=False):
+            output_last_ft=False, finetune=None):
         super().__init__()
         self.output_last_ft = output_last_ft
         self.vgg = make_layers(vgg.cfg['D'])

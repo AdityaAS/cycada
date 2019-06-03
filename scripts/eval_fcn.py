@@ -7,11 +7,20 @@ import torch
 import torchvision
 from torch.autograd import Variable
 
+import sys
+sys.path.append('.')
+
 from cycada.data.data_loader import dataset_obj
 from cycada.data.data_loader import get_fcn_dataset
 from cycada.models.models import get_model
 from cycada.models.models import models
 from cycada.util import to_tensor_raw
+
+from cycada.data.adda_datasets import AddaDataLoader
+from cycada.data.cyclegta5 import CycleGTA5
+from cycada.data.usps import USPS
+from cycada.data.color2blk import color2blk
+from cycada.data.blk import blk
 
 
 def fmt_array(arr, fmt=','):
@@ -32,9 +41,9 @@ def result_stats(hist):
 
 @click.command()
 @click.argument('path', type=click.Path(exists=True))
-@click.option('--dataset', default='cityscapes',
+@click.option('--dataset', default='blk',
               type=click.Choice(dataset_obj.keys()))
-@click.option('--datadir', default='',
+@click.option('--datadir', default='/home/ubuntu/anthro-efs/anthro-backup-virginia/data/',
         type=click.Path(exists=True))
 @click.option('--model', default='fcn8s', type=click.Choice(models.keys()))
 @click.option('--gpu', default='0')
