@@ -1,3 +1,5 @@
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -9,7 +11,6 @@ from torch.utils import model_zoo
 from torchvision.models import vgg
 
 from .models import register_model
-
 def get_upsample_filter(size):
     """Make a 2D bilinear kernel suitable for upsampling"""
     factor = (size + 1) // 2
@@ -26,7 +27,7 @@ def get_upsample_filter(size):
 class Bilinear(nn.Module):
 
     def __init__(self, factor, num_channels):
-        super().__init__()
+        super(Bilinear, self).__init__()
         self.factor = factor
         filter = get_upsample_filter(factor * 2)
         w = torch.zeros(num_channels, num_channels, factor * 2, factor * 2)
@@ -41,7 +42,11 @@ class Bilinear(nn.Module):
 @register_model('fcn8s')
 class VGG16_FCN8s(nn.Module):
 
-    transform = torchvision.transforms.Compose([
+    def __init__(self, num_cls=19, pretrained=True, weights_init=None, 
+            output_last_ft=False):
+        super(VGG16_FCN8s, self).__init__()
+
+        self.transform = torchvision.transforms.Compose([
         torchvision.transforms.ToTensor(),
         torchvision.transforms.Normalize(
             mean=[0.485, 0.456, 0.406],
@@ -66,10 +71,10 @@ class VGG16_FCN8s(nn.Module):
         self.upscore8 = Bilinear(8, num_cls)
         self.score_pool4 = nn.Conv2d(512, num_cls, 1)
         for param in self.score_pool4.parameters():
-            init.constant(param, 0)
+            init.constant_(param, 0)
         self.score_pool3 = nn.Conv2d(256, num_cls, 1)
         for param in self.score_pool3.parameters():
-            init.constant(param, 0)
+            init.constant_(param, 0)
         
         if pretrained:
             if weights_init is not None:
@@ -130,6 +135,7 @@ class VGG16_FCN8s(nn.Module):
         fuse_pool3 = upscore_pool4 + score_pool3c
         upscore8 = self.upscore8(fuse_pool3)
         score = _crop(upscore8, input, offset=31)
+        
         if self.output_last_ft: 
             return score, last_ft
         else:
@@ -153,10 +159,6 @@ class VGG16_FCN8s(nn.Module):
                 continue
             vgg_head_param = next(vgg_head_params)
             vgg_head_param.data = v.view(vgg_head_param.size())
-
-
-    
-
 
 class VGG16_FCN8s_caffe(VGG16_FCN8s):
 
@@ -187,7 +189,7 @@ class VGG16_FCN8s_caffe(VGG16_FCN8s):
 
 class Discriminator(nn.Module):
     def __init__(self, input_dim=4096, output_dim=2, pretrained=False, weights_init=''):
-        super().__init__()
+        super(Discriminator, self).__init__()
         dim1 = 1024 if input_dim==4096 else 512
         dim2 = int(dim1/2)
         self.D = nn.Sequential(
@@ -210,8 +212,6 @@ class Discriminator(nn.Module):
     def load_weights(self, weights):
         print('Loading discriminator weights')
         self.load_state_dict(torch.load(weights))
-   
-
 
 class Transform_Module(nn.Module):
     def __init__(self, input_dim=4096):

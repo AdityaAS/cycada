@@ -28,10 +28,13 @@ from cycada.data.blk import blk
 from cycada.models import get_model
 from cycada.models.models import models
 from cycada.models import VGG16_FCN8s, Discriminator
-from cycada.util import config_logging
+from cycada.util import config_logging, check_label
 from cycada.util import to_tensor_raw
+from cycada.util import fast_hist
 from cycada.tools.util import make_variable
 
+from cycada.loss_fns import supervised_loss, discriminator_loss
+from cycada.metrics import seg_accuracy
 
 
 def check_label(label, num_cls):
@@ -60,35 +63,35 @@ def forward_pass(net, discriminator, im, requires_grad=False, discrim_feat=False
     if not requires_grad:
         score = Variable(score.data, requires_grad=False)
         
-    return score, dis_score
+#     return score, dis_score
 
-def supervised_loss(score, label, weights=None):
-    loss_fn_ = torch.nn.NLLLoss(weight=weights, size_average=True, 
-            ignore_index=255)
-    loss = loss_fn_(F.log_softmax(score, dim=1), label)
-    return loss
+# def supervised_loss(score, label, weights=None):
+#     loss_fn_ = torch.nn.NLLLoss(weight=weights, size_average=True, 
+#             ignore_index=255)
+#     loss = loss_fn_(F.log_softmax(score, dim=1), label)
+#     return loss
    
-def discriminator_loss(score, target_val, lsgan=False):
-    if lsgan:
-        loss = 0.5 * torch.mean((score - target_val)**2)
-    else:
-        _,_,h,w = score.size()
-        target_val_vec = Variable(target_val * torch.ones(1,h,w),requires_grad=False).long().cuda()
-        loss = supervised_loss(score, target_val_vec)
-    return loss
+# def discriminator_loss(score, target_val, lsgan=False):
+#     if lsgan:
+#         loss = 0.5 * torch.mean((score - target_val)**2)
+#     else:
+#         _,_,h,w = score.size()
+#         target_val_vec = Variable(target_val * torch.ones(1,h,w),requires_grad=False).long().cuda()
+#         loss = supervised_loss(score, target_val_vec)
+#     return loss
 
-def fast_hist(a, b, n):
-    k = (a >= 0) & (a < n)
-    return np.bincount(n * a[k].astype(int) + b[k], minlength=n**2).reshape(n,n)
+# def fast_hist(a, b, n):
+#     k = (a >= 0) & (a < n)
+#     return np.bincount(n * a[k].astype(int) + b[k], minlength=n**2).reshape(n,n)
 
-def seg_accuracy(score, label, num_cls):
-    _, preds = torch.max(score.data, 1)
-    hist = fast_hist(label.cpu().numpy().flatten(),
-            preds.cpu().numpy().flatten(), num_cls)
-    intersections = np.diag(hist)
-    unions = (hist.sum(1) + hist.sum(0) - np.diag(hist) + 1e-8) * 100
-    acc = np.diag(hist).sum() / hist.sum()
-    return intersections, unions, acc
+# def seg_accuracy(score, label, num_cls):
+#     _, preds = torch.max(score.data, 1)
+#     hist = fast_hist(label.cpu().numpy().flatten(),
+#             preds.cpu().numpy().flatten(), num_cls)
+#     intersections = np.diag(hist)
+#     unions = (hist.sum(1) + hist.sum(0) - np.diag(hist) + 1e-8) * 100
+#     acc = np.diag(hist).sum() / hist.sum()
+#     return intersections, unions, acc
 
 def norm(tensor):
     r = tensor.max() - tensor.min()
@@ -112,7 +115,7 @@ def norm(tensor):
 @click.option('--weights_init', type=click.Path(exists=True))
 @click.option('--model', default='fcn8s', type=click.Choice(models.keys()))
 @click.option('--lsgan/--no_lsgan', default=False)
-@click.option('--num_cls', type=int, default=19)
+@click.option('--num_cls', type=int, default=2)
 @click.option('--gpu', default='0')
 @click.option('--max_iter', default=10000)
 @click.option('--lambda_d', default=1.0)
@@ -140,8 +143,7 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
     else:
         logdir += '_discrimscore'
     logdir += '/' + datetime.now().strftime('%Y_%b_%d-%H:%M')
-    writer = SummaryWriter(log_dir=logdir)
-
+    writer = SummaryWriter()#log_dir=logdir)
 
     os.environ['CUDA_VISIBLE_DEVICES'] = gpu
     config_logging()
@@ -154,6 +156,8 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
         net_src = get_model(model, num_cls=num_cls, pretrained=True, 
                 weights_init=weights_init, output_last_ft=discrim_feat, finetune=True)
         net_src.eval()
+
+    print("GOT MODEL")
 
     odim = 1 if lsgan else 2
     idim = num_cls if not discrim_feat else 4096
@@ -171,7 +175,6 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
     loader = AddaDataLoader(net.transform, dataset, datadir, downscale, 
             crop_size=crop_size, half_crop=half_crop,
             batch_size=batch, shuffle=True, num_workers=2)
-    print('dataset', dataset)
 
     # Class weighted loss?
     if cls_weights is not None:
@@ -237,6 +240,7 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
             else:
                 score_s = Variable(net_src(im_s).data, requires_grad=False)
                 f_s = score_s
+                
             dis_score_s = discriminator(f_s)
             
             if discrim_feat:
@@ -246,6 +250,7 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
             else:
                 score_t = Variable(net(im_t).data, requires_grad=False)
                 f_t = score_t
+
             dis_score_t = discriminator(f_t)
             
             dis_pred_concat = torch.cat((dis_score_s, dis_score_t))

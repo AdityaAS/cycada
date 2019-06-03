@@ -6,7 +6,6 @@ from . import util
 from . import html
 from scipy.misc import imresize
 
-
 # save image to the disk
 def save_images(webpage, visuals, image_path, aspect_ratio=1.0, width=256):
     image_dir = webpage.get_image_dir()
@@ -40,7 +39,8 @@ class Visualizer():
         self.win_size = opt.display_winsize
         self.name = opt.name
         self.opt = opt
-        self.saved = False
+        self.saved = False   
+
         if self.display_id > 0:
             import visdom
             self.ncols = opt.display_ncols

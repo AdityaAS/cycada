@@ -31,6 +31,7 @@ def config_logging(logfile=None):
    # logging.config.dictConfig(config)
 
 
+# How is this different from torchvision.transforms.ToTensor()
 def to_tensor_raw(im):
     return torch.from_numpy(np.array(im, np.int64, copy=False))
 
@@ -66,3 +67,56 @@ def step_lr(optimizer, mult):
     for param_group in optimizer.param_groups:
         lr = param_group['lr']
         param_group['lr'] = lr * mult
+
+def fast_hist(a, b, n):
+    k = (a >= 0) & (a < n)
+    return np.bincount(n * a[k].astype(int) + b[k], minlength=n**2).reshape(n,n)
+
+def check_label(label, num_cls):
+    "Check that no labels are out of range"
+    print(label.size())
+    label_classes = np.unique(label.numpy().flatten())
+    print(label_classes)
+    label_classes = label_classes[label_classes < 255]
+    if len(label_classes) == 0:
+        print('All ignore labels')
+        return False
+    class_too_large = label_classes.max() > num_cls
+    if class_too_large or label_classes.min() < 0:
+        print('Labels out of bound')
+        print(label_classes)
+        return False
+    return True
+
+def roundrobin_infinite(*loaders):
+    if not loaders:
+        return
+    iters = [iter(loader) for loader in loaders]
+    while True:
+        for i in range(len(iters)):
+            it = iters[i]
+            try:
+                yield next(it)
+            except StopIteration:
+                iters[i] = iter(loaders[i])
+                yield next(iters[i])
+
+def rgb2gray(rgb):
+    return np.dot(rgb[...,:3], [0.2989, 0.5870, 0.1140])
+
+def get_pred(pred):
+    return torch.max(pred, dim=1)[1].long()
+
+def preprocess_viz(image, pred, labels):
+    p_maps = get_pred(pred)
+    p_maps = p_maps.cpu().numpy()
+    labels = labels.cpu().numpy()
+    images = image.cpu().numpy()
+    im1 = rgb2gray(images[0].T)
+    im2 = rgb2gray(images[1].T)
+    final = np.stack((im1,p_maps[0],labels[0],im2,p_maps[1],labels[1]))
+    final = np.expand_dims(final, axis=1)
+    return final
+
+
+

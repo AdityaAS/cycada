@@ -4,10 +4,12 @@ from data import CreateDataLoader
 from models import create_model
 from util.visualizer import Visualizer
 
+# Well written!
 if __name__ == '__main__':
     opt = TrainOptions().parse()
     data_loader = CreateDataLoader(opt)
     dataset = data_loader.load_data()
+    
     dataset_size = len(data_loader)
     print('#training images = %d' % dataset_size)
 
@@ -28,6 +30,7 @@ if __name__ == '__main__':
             visualizer.reset()
             total_steps += opt.batchSize
             epoch_iter += opt.batchSize
+
             model.set_input(data)
             model.optimize_parameters()
 

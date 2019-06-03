@@ -1,7 +1,6 @@
 import random
 import os.path
 import torchvision.transforms as transforms
-from torchvision.datasets.mnist import MNIST
 from data.base_dataset import BaseDataset
 import scipy.io
 import numpy as np
@@ -12,7 +11,7 @@ from PIL.ImageOps import invert
 
 class MnistSvhnDataset(BaseDataset):
     def name(self):
-        return 'MnistSvhnDataset'
+        return 'BlenderOpenDR'
 
     def initialize(self, opt):
         self.opt = opt
@@ -22,8 +21,8 @@ class MnistSvhnDataset(BaseDataset):
                            train=opt.isTrain, download=True)
         #svhn_mat_extra = scipy.io.loadmat(os.path.join(opt.dataroot,
         #                                               'svhn/extra_32x32.mat'))
-        svhn_mat_train = scipy.io.loadmat(os.path.join(opt.dataroot,
-                                                       'svhn/train_32x32.mat'))
+        #svhn_mat_train = scipy.io.loadmat(os.path.join(opt.dataroot,
+        #                                               'svhn/train_32x32.mat'))
         #svhn_np = np.concatenate((np.array(svhn_mat_train['X']),
         #                          np.array(svhn_mat_extra['X'])),
         #                         axis=3)
@@ -58,11 +57,9 @@ class MnistSvhnDataset(BaseDataset):
         #    A_img = invert(A_img)
         A_img = A_img.resize((32, 32))
         A_img = A_img.convert('RGB')
-        
         #A_img = np.expand_dims(np.array(A_img), 0)
         #print('mnist after expand dims:', np.array(A_img).shape)
         #A_img = np.transpose(A_img, (1, 2, 0))
-
         A_img = self.transform(A_img)
         A_path = '%01d_%05d.png' % (A_label, index)
 
@@ -94,5 +91,4 @@ class MnistSvhnDataset(BaseDataset):
         #else:            
         #    return self.svhn.shape[0]
 
-        return self.svhn.shape[0] #min(len(self.mnist), self.svhn.shape[0])
-        
+        return self.svhn.shape[0]

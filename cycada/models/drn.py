@@ -13,9 +13,10 @@ __all__ = ['DRN', 'drn26', 'drn42', 'drn58']
 
 
 model_urls = {
-    'drn26': 'https://tigress-web.princeton.edu/~fy/drn/models/drn26-ddedf421.pth',
+    #'drn26': 'https://tigress-web.princeton.edu/~fy/drn/models/drn26-ddedf421.pth',
     'drn42': 'https://tigress-web.princeton.edu/~fy/drn/models/drn42-9d336e8c.pth',
-    'drn58': 'https://tigress-web.princeton.edu/~fy/drn/models/drn58-0a53a92c.pth'
+    'drn58': 'https://tigress-web.princeton.edu/~fy/drn/models/drn58-0a53a92c.pth',
+    'drn26': 'https://people.eecs.berkeley.edu/~jhoffman/cycada/drn26-gta5-iter115000.pth'
 }
 
 
@@ -113,7 +114,7 @@ class DRN(nn.Module):
     def __init__(self, block, layers, num_cls=1000,
                  channels=(16, 32, 64, 128, 256, 512, 512, 512),
                  out_map=False, out_middle=False, pool_size=28, 
-                 weights_init=None, pretrained=True, finetune=False,
+                 weights_init=None, pretrained=True, finetune=True,
                  output_last_ft=False, modelname='drn26'):
         if output_last_ft:
             print('DRN discrim feat not implemented, using scores')
@@ -246,7 +247,7 @@ class DRN(nn.Module):
             return x
 
 @register_model('drn26')
-def drn26(pretrained=True, finetune=False, out_map=True, **kwargs):
+def drn26(pretrained=True, finetune=True, out_map=True, **kwargs):
     model = DRN(BasicBlock, [1, 1, 2, 2, 2, 2, 1, 1], modelname='drn26', 
             out_map=out_map, finetune=finetune, **kwargs)
     #if pretrained:
@@ -261,7 +262,7 @@ def drn26(pretrained=True, finetune=False, out_map=True, **kwargs):
 
 
 @register_model('drn42')
-def drn42(pretrained=False, finetune=False, out_map=True, **kwargs):
+def drn42(pretrained=False, finetune=True, out_map=True, **kwargs):
     model = DRN(BasicBlock, [1, 1, 3, 4, 6, 3, 1, 1], modelname='drn42', 
             out_map=out_map, finetune=finetune, **kwargs)
     #if pretrained:

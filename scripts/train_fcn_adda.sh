@@ -41,7 +41,7 @@ baseiter=100000
 
 num_cls=2
 
-base_model="base_models/${model}-${src}-iter${baseiter}.pth"
+#base_model="base_models/${model}-${src}-iter${baseiter}.pth"
 outdir="${resdir}/${model}/lr${lr}_crop${crop}_ld${lambda_d}_lg${lambda_g}_momentum${momentum}"
 
 # Run python script #

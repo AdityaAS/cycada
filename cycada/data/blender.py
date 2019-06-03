@@ -6,11 +6,11 @@ import torch
 import torch.utils.data as data
 from glob import glob
 from PIL import Image
-#sys.path.append('..')
-from data.data_loader import register_data_params, register_dataset_obj
-from data.data_loader import DatasetParams
 
-@register_data_params('blender')
+from cycada.data.data_loader import register_data_params, register_dataset_obj
+from cycada.data.data_loader import DatasetParams
+
+@register_data_params('singleview_blender_100k_visibility')
 class BlenderParams(DatasetParams):
     num_channels = 3
     image_size = 224
@@ -18,7 +18,7 @@ class BlenderParams(DatasetParams):
     num_cls = 2
     target_transform = None
 
-@register_dataset_obj('blender')
+@register_dataset_obj('singleview_blender_100k_visibility')
 class Blender(data.Dataset):
 
     def __init__(self, root, num_cls=2, split='train', remap_labels=True, 
@@ -26,6 +26,7 @@ class Blender(data.Dataset):
         self.root = root
         self.split = split
         self.remap_labels = remap_labels
+        self.name = "singleview_blender_100k_visibility"
         self.ids = self.collect_ids()
         self.transform = transform
         self.target_transform = target_transform
@@ -49,6 +50,9 @@ class Blender(data.Dataset):
         filename = id + ".png"
         return os.path.join(self.l_path, filename)
 
+    def __iter__(self):
+        return self
+
     def __getitem__(self, index):
         id = self.ids[index]
         img_path = self.img_path(id)
@@ -57,12 +61,7 @@ class Blender(data.Dataset):
         if self.transform is not None:
             img = self.transform(img)
         target = Image.open(label_path)
-        if self.remap_labels:
-            target = np.asarray(target)
-            target = remap_labels_to_train_ids(target)
-            target = Image.fromarray(target, 'L')
-        if self.target_transform is not None:
-            target = self.target_transform(target)
+        target = np.asarray(target)*255
         return img, target
 
     def __len__(self):

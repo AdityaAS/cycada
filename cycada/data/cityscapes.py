@@ -6,8 +6,8 @@ import torch
 import torch.utils.data as data
 from PIL import Image
 
-from .data_loader import register_data_params, register_dataset_obj
-from .data_loader import DatasetParams
+from cycada.data.data_loader import register_data_params, register_dataset_obj
+from cycada.data.data_loader import DatasetParams
 
 ignore_label = 255
 id2label = {-1: ignore_label, 0: ignore_label, 1: ignore_label, 2: ignore_label,
