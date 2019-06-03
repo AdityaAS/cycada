@@ -37,6 +37,11 @@ def norm(tensor):
     tensor = (tensor - tensor.min())/r
     return tensor
 
+def mxAxis(tensor):
+    _, indices = torch.max(tensor, 0)
+    import pdb;pdb.set_trace()
+    return indices
+
 @click.command()
 @click.option('--path', type=click.Path(exists=True))
 @click.option('--dataset', default='cityscapes',
@@ -49,19 +54,23 @@ def norm(tensor):
 @click.option('--num_cls', default=19)
 def main(path, dataset, datadir, model, gpu, num_cls):
     os.environ['CUDA_VISIBLE_DEVICES'] = gpu
-    net = get_model(model, num_cls=num_cls, weights_init=path).cuda()
+    net = get_model(model, num_cls=num_cls).cuda()
+    net.load_state_dict(torch.load(path))
     net.eval()
-    ds = get_fcn_dataset(dataset, os.path.join(datadir, dataset), split='train')
+    ds = get_fcn_dataset(dataset, os.path.join(datadir, dataset), split='test')
     classes = ds.num_cls
     collate_fn = torch.utils.data.dataloader.default_collate
     loader = torch.utils.data.DataLoader(ds,  num_workers=8, batch_size=16, shuffle=False, pin_memory=True, collate_fn=collate_fn)
 
     intersections = np.zeros(num_cls)
     unions = np.zeros(num_cls)
+    
     ious = deque(maxlen=625)
     recalls = deque(maxlen=625)
+
     errs = []
     hist = np.zeros((num_cls, num_cls))
+
     if len(loader) == 0:
         print('Empty data loader')
         return
@@ -70,21 +79,23 @@ def main(path, dataset, datadir, model, gpu, num_cls):
         im = make_variable(im, requires_grad=False)
         label = make_variable(label, requires_grad=False)
         p = net(im)
-        score = p.data
+        score = p
 
         #import pdb; pdb.set_trace()
-        # import pdb;pdb.set_trace()
-        im = Image.fromarray(np.uint8(norm(im[0]).permute(1, 2, 0).cpu().data.numpy()*255))
-        label = Image.fromarray(np.uint8(label[0].cpu().data.numpy()*255))
-        score = Image.fromarray(np.uint8(norm(score[0, 1]).cpu().data.numpy()*255))
+        #import pdb;pdb.set_trace()
+        #val = im[0].permute(1, 2, 0).cpu().numpy()
+        #im = Image.fromarray(val)
+        #label = Image.fromarray(label[0].cpu().numpy())
+        #score = Image.fromarray(mxAxis(score[0]).cpu().numpy())
 
-        im.save("img.png")
-        label.save("img_lbl.png")
-        score.save("img_sc.png")
+        #im.save("img.png")
+        #label.save("img_lbl.png")
+        #score.save("img_sc.png")
         
-        import pdb;pdb.set_trace();
+        #import pdb;pdb.set_trace();
         iou = IoU(p, label)
         rc = recall(p, label)
+
         ious.append(iou.item())
         recalls.append(rc.item())
         #iterations.set_postfix({'miou : {}, mrecall : {}'.format(np.mean(ious), np.mean(recalls))})
