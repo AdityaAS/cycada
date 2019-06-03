@@ -76,6 +76,7 @@ class VGG16_FCN8s(nn.Module):
         
         if pretrained:
             if weights_init is not None:
+                print("GOT HERE path{}".format(weights_init))
                 self.load_weights(torch.load(weights_init))
             else:
                 self.load_base_weights()

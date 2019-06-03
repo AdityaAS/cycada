@@ -1,8 +1,8 @@
 {
 	"phase" : "train",
-	"dataset": "singleview_opendr_solid",
-	"datadir": "/efs/data/HMR_baby/datasets/",
-	"batch_size": 2,
+	"dataset": "singleview_opendr_real_ratio",
+	"datadir": "/home/users/aditya/data",
+	"batch_size": 16,
 	"lr": 0.001,
 	"step": null,
 	"num_epochs": 50,

@@ -15,6 +15,8 @@ import torch.nn.functional as F
 import torchvision
 import torchvision.utils as vutils
 from tensorboardX import SummaryWriter
+#from torch.utils.tensorboard import SummaryWriter
+
 from PIL import Image
 from copy import copy
 from torch.autograd import Variable
@@ -32,6 +34,8 @@ from cycada.util import roundrobin_infinite
 from cycada.util import preprocess_viz
 from cycada.tools.util import make_variable
 from cycada.loss_fns import supervised_loss
+from cycada.metrics import fast_hist
+from cycada.metrics import result_stats
 from cycada.metrics import IoU, recall
 from tqdm import tqdm
 
@@ -40,8 +44,8 @@ def main(config_path):
     with open(config_path, 'r') as f:
         config = json.load(f)
 
-    if config["weights"] is not None:
-        raise RuntimeError("weights don't work because eric is bad at coding")
+
+
     
     os.environ['CUDA_VISIBLE_DEVICES'] = config["gpu"]
 
@@ -111,12 +115,13 @@ def main(config_path):
                                             pin_memory=pin_memory)
 
     data_metric = {'train': None, 'val' : None, 'test' : None}
-    metrics = {'losses': deque(maxlen=10), 'ious': deque(maxlen=10), 'recalls': deque(maxlen=10)}
+    metrics = {'losses': deque(maxlen=625), 'ious': deque(maxlen=625), 'recalls': deque(maxlen=625)}
     
     data_metric['train'] = copy(metrics)
     data_metric['val'] = copy(metrics)
     data_metric['test'] = copy(metrics)
-
+    num_cls = config["num_cls"]
+    hist = np.zeros((num_cls, num_cls))
     iteration = 0
     
     for epoch in range(config["num_epochs"]):
@@ -126,6 +131,7 @@ def main(config_path):
             # Epoch train
             print("Epoch_train!")
             for im, label in tqdm(iterator):
+                break
                 iteration += 1
                 # Clear out gradients
                 opt.zero_grad()
@@ -133,13 +139,18 @@ def main(config_path):
                 # load data/label
                 im = make_variable(im, requires_grad=False)
                 label = make_variable(label, requires_grad=False)
+                #print(im.size())
         
                 # forward pass and compute loss
                 preds = net(im)
+                score = preds.data
+                _, pred = torch.max(score, 1)
+                hist += fast_hist(label.cpu().numpy().flatten(), pred.cpu().numpy().flatten(),num_cls)
+                acc_overall, acc_percls, iu, fwIU = result_stats(hist)
                 loss = supervised_loss(preds, label)
                 iou = IoU(preds, label)
                 rc = recall(preds, label)
-
+                print(acc_overall, np.nanmean(acc_percls), np.nanmean(iu), fwIU) 
                 # backward pass
                 loss.backward()
 
@@ -169,7 +180,11 @@ def main(config_path):
             writer.add_scalar('trainepoch/recall', np.mean(data_metric['train']['recalls']), global_step=epoch)
             imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
             writer.add_image('{}_image_data'.format('trainepoch'), imutil, global_step=epoch)
-
+            print("Loss :{}".format(np.mean(data_metric['train']['losses'])))
+            print("IOU :{}".format(np.mean(data_metric['train']['ious'])))
+            print("recall :{}".format(np.mean(data_metric['train']['recalls'])))
+            if epoch % config["checkpoint_interval"] == 0:
+                torch.save(net.state_dict(), join(checkpointdir, 'iter{}.pth'.format(epoch)))	
             # Epoch Val
             if epoch % config["val_epoch_interval"] == 0:
                 net.eval()
@@ -189,7 +204,7 @@ def main(config_path):
                     data_metric['val']['losses'].append(loss.item())
                     data_metric['val']['ious'].append(iou.item())
                     data_metric['val']['recalls'].append(rc.item())
-
+                print(np.mean(data_metric['val']['ious']))
                 # Val visualizations
                 vizz = preprocess_viz(im, preds, label)
                 writer.add_scalar('valepoch/loss', np.mean(data_metric['val']['losses']), global_step=epoch)
@@ -227,8 +242,6 @@ def main(config_path):
                 logging.info('Decreasing learning rate by 0.1 factor')
                 step_lr(optimizer, 0.1)
 
-            if epoch % config["checkpoint_interval"] == 0:
-                torch.save(net.state_dict(), join(checkpointdir, 'iter{}.pth'.format(epoch)))
 
     logging.info('Optimization complete.')
 
