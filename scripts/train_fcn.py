@@ -131,9 +131,11 @@ def main(config_path):
     for epoch in range(config["num_epochs"]):
         if config["phase"] == 'train':
             net.train()
-            iterator = iter(train_loader)
+            iterator = tqdm(iter(train_loader))
+
             # Epoch train
-            for im, label in tqdm(iterator):
+            print("Train Epoch!")
+            for im, label in iterator:
                 iteration += 1
                 # Clear out gradients
                 opt.zero_grad()
@@ -168,6 +170,9 @@ def main(config_path):
                     imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
                     writer.add_image('{}_image_data'.format('train'), imutil, iteration)
 
+                iterator.set_description("TRAIN V: {} | Epoch: {}".format(config["version"], epoch))
+                iterator.refresh()
+
             # Train visualizations - per epoch
             vizz = preprocess_viz(im, preds, label)
             writer.add_scalar('trainepoch/loss', np.mean(data_metric['train']['losses']), global_step=epoch)
@@ -180,8 +185,8 @@ def main(config_path):
             if epoch % config["val_epoch_interval"] == 0:
                 net.eval()
                 print("Val_epoch!")
-                iterator = iter(val_loader)
-                for im, label in tqdm(iterator):
+                iterator = tqdm(iter(val_loader))
+                for im, label in iterator:
                     # load data/label
                     im = make_variable(im, requires_grad=False)
                     label = make_variable(label, requires_grad=False)
@@ -196,6 +201,8 @@ def main(config_path):
                     data_metric['val']['ious'].append(iou.item())
                     data_metric['val']['recalls'].append(rc.item())
 
+                    iterator.set_description("VAL V: {} | Epoch: {}".format(config["version"], epoch))
+                    iterator.refresh()
                 # Val visualizations
                 vizz = preprocess_viz(im, preds, label)
                 writer.add_scalar('valepoch/loss', np.mean(data_metric['val']['losses']), global_step=epoch)
@@ -208,8 +215,8 @@ def main(config_path):
             if epoch % config["test_epoch_interval"] == 0:
                 net.eval()
                 print("Test_epoch!")
-                iterator = iter(test_loader)
-                for im, label in tqdm(iterator):
+                iterator = tqdm(iter(test_loader))
+                for im, label in iterator:
                     # load data/label
                     im = make_variable(im, requires_grad=False)
                     label = make_variable(label, requires_grad=False)
@@ -224,6 +231,8 @@ def main(config_path):
                     data_metric['test']['ious'].append(iou.item())
                     data_metric['test']['recalls'].append(rc.item())
 
+                    iterator.set_description("TEST V: {} | Epoch: {}".format(config["version"], epoch))
+                    iterator.refresh()
                 # Test visualizations
                 writer.add_scalar('testepoch/loss', np.mean(data_metric['test']['losses']), global_step=epoch)
                 writer.add_scalar('testepoch/IOU', np.mean(data_metric['test']['ious']), global_step=epoch)
