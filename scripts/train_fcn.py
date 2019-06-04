@@ -59,12 +59,16 @@ def main(config_path):
     # join(config["output"], config["dataset"], config["dataset"] + '_' + config["model"], 
     #                 'v{}'.format(config["version"]))
 
-    for path in [checkpointdir, logdir]:
-        if not exists(path):
-            os.makedirs(path)
-        elif not config["fine_tune"]:
-            shutil.rmtree(path)
-            os.makedirs(path)
+    versionpath = join('runs', config["model"], config["dataset"], 'v{}'.format(config["version"]))
+
+    if not exists(versionpath):
+        os.makedirs(versionpath)
+        os.makedirs(checkpointdir)
+        os.makedirs(logdir)
+    else:
+        print("Version {} already exists! Please run with different version number".format(config["version"]))
+        logging.info("Version {} already exists! Please run with different version number".format(config["version"]))
+        sys.exit(-1)
 
     writer = SummaryWriter(logdir)
 
