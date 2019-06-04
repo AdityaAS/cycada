@@ -65,6 +65,11 @@ def main(config_path):
         os.makedirs(versionpath)
         os.makedirs(checkpointdir)
         os.makedirs(logdir)
+    elif exists(versionpath) and config["force"]:
+        shutil.rmtree(versionpath)
+        os.makedirs(versionpath)
+        os.makedirs(checkpointdir)
+        os.makedirs(logdir)
     else:
         print("Version {} already exists! Please run with different version number".format(config["version"]))
         logging.info("Version {} already exists! Please run with different version number".format(config["version"]))
