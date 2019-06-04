@@ -133,7 +133,6 @@ def main(config_path):
             net.train()
             iterator = iter(train_loader)
             # Epoch train
-            print("Epoch_train!")
             for im, label in tqdm(iterator):
                 iteration += 1
                 # Clear out gradients
@@ -160,8 +159,6 @@ def main(config_path):
                 # step gradients
                 opt.step()
                 
-                print(iteration, config["train_tf_interval"])
-
                 # Train visualizations - each iteration
                 if iteration % config["train_tf_interval"] == 0:
                     vizz = preprocess_viz(im, preds, label)
