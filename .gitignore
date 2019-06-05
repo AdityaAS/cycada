@@ -5,3 +5,6 @@ vcycada/*
 runs/*
 results/*
 *.ipynb_checkpoints
+configs/*
+*.png
+*.jpg
