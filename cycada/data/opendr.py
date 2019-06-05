@@ -62,12 +62,24 @@ class OpenDR(Dataset):
     def __getitem__(self, index):
         img_path = self.img_path(index)
         label_path = self.label_path(index)
+<<<<<<< Updated upstream
         img = cv2.imread(img_path, 0)
         img_temp = np.expand_dims(img, axis = 2)
         img = np.concatenate((img_temp, img_temp, img_temp), axis=2)
         target = cv2.imread(label_path)
         img = cv2.resize(img, self.size)
         target = cv2.resize(target, self.size)
+=======
+        img = cv2.imread(img_path)
+        #img = cv2.imread(img_path, 0)
+        #img_temp = np.expand_dims(img, axis = 2)
+        #img = np.concatenate((img_temp, img_temp, img_temp), axis=2)
+        target = cv2.imread(label_path)
+
+        img = cv2.resize(img, self.size)
+        target = cv2.resize(target, self.size)
+
+>>>>>>> Stashed changes
         # Convert to NCHW format and normalize to -1 to 1
         # WARNING: Original code did mean normalization, we did min max normalization. Change if necessary to old one.
         img = torch.Tensor(convert_image_by_pixformat_normalize(img))

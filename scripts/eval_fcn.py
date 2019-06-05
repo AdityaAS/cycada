@@ -54,7 +54,11 @@ def mxAxis(tensor):
 @click.option('--num_cls', default=19)
 def main(path, dataset, datadir, model, gpu, num_cls):
     os.environ['CUDA_VISIBLE_DEVICES'] = gpu
+<<<<<<< Updated upstream
     net = get_model(model, num_cls=num_cls).cuda()
+=======
+    net = get_model(model, num_cls=num_cls)
+>>>>>>> Stashed changes
     net.load_state_dict(torch.load(path))
     net.eval()
     ds = get_fcn_dataset(dataset, os.path.join(datadir, dataset), split='test')
