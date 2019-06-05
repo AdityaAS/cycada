@@ -1,6 +1,3 @@
-
-gpu=0
-
 ######################
 # loss weight params #
 ######################
@@ -40,11 +37,13 @@ num_cls=2
 base_model="/home/users/aditya/sohan/cycada/runs/fcn8s/singleview_opendr_solid/color/checkpoints/iter49.pth"
 outdir="${resdir}/${model}/lr${lr}_crop${crop}_ld${lambda_d}_lg${lambda_g}_momentum${momentum}"
 
+# mkdir -p outdir
+
 # Run python script #
-CUDA_VISIBLE_DEVICES=${gpu} python scripts/train_fcn_adda.py \
+python scripts/train_fcn_adda.py \
 	--output ${outdir} \
     --dataset ${src} --dataset ${tgt} --datadir ${datadir} \
-    --lr ${lr} --momentum ${momentum} --gpu ${gpu} \
+    --lr ${lr} --momentum ${momentum} \
     --lambda_d ${lambda_d} --lambda_g ${lambda_g} \
     --model ${model} --weights_init ${base_model}\
     --weights_shared --discrim_feat --no_lsgan \

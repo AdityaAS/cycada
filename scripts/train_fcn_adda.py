@@ -118,7 +118,6 @@ def norm(tensor):
 @click.option('--model', default='fcn8s', type=click.Choice(models.keys()))
 @click.option('--lsgan/--no_lsgan', default=False)
 @click.option('--num_cls', type=int, default=2)
-@click.option('--gpu', default='0')
 @click.option('--max_iter', default=10000)
 @click.option('--lambda_d', default=1.0)
 @click.option('--lambda_g', default=1.0)
@@ -126,7 +125,7 @@ def norm(tensor):
 @click.option('--discrim_feat/--discrim_score', default=False)
 @click.option('--weights_shared/--weights_unshared', default=False)
 
-def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weights, gpu, 
+def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weights, 
         weights_init, num_cls, lsgan, max_iter, lambda_d, lambda_g,
         train_discrim_only, weights_discrim, crop_size, weights_shared,
         discrim_feat, half_crop, batch, model):
@@ -147,7 +146,6 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
     logdir += '/' + datetime.now().strftime('%Y_%b_%d-%H:%M')
     writer = SummaryWriter(logdir)
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = gpu
     config_logging()
     print('Train Discrim Only', train_discrim_only)
     net = get_model(model, num_cls=num_cls,
@@ -177,7 +175,7 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
             weights_init=weights_discrim)
 
 
-    loader = AddaDataLoader(net.transform, dataset, datadir, downscale, 
+    loader = AddaDataLoader(None, dataset, datadir, downscale, 
             crop_size=crop_size, half_crop=half_crop,
             batch_size=batch, shuffle=True, num_workers=2)
     print('dataset', dataset)

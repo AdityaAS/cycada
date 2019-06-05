@@ -1,8 +1,8 @@
 {
 	"phase" : "train",
 	"dataset": "singleview_opendr_solid",
-	"datadir": "/efs/data/HMR_baby/datasets/",
-	"batch_size": 2,
+	"datadir": "/home/users/aditya/data/",
+	"batch_size": 16,
 	"lr": 0.001,
 	"step": null,
 	"num_epochs": 50,
@@ -16,6 +16,7 @@
 	"crop_size": 120,
 	"weights": null,
 	"model": "fcn8s",
+	"force": true,
 	"num_cls": 2,
 	"num_workers": 2,
 	"pin_memory": true,

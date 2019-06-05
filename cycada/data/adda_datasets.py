@@ -21,10 +21,12 @@ class AddaDataLoader(object):
         assert len(self.dataset)==2, 'Requires two datasets: source, target'
         sourcedir = os.path.join(rootdir, self.dataset[0])
         targetdir = os.path.join(rootdir, self.dataset[1])
+
         self.source = get_transform_dataset(self.dataset[0], sourcedir, 
                 net_transform, downscale) 
         self.target = get_transform_dataset(self.dataset[1], targetdir, 
                 net_transform, downscale)
+        
         print('Source length:', len(self.source), 'Target length:', len(self.target))
         self.n = max(len(self.source), len(self.target)) # make sure you see all images
         self.num = 0

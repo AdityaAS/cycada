@@ -257,6 +257,7 @@ def main(config_path):
 
                     iterator.set_description("TEST V: {} | Epoch: {}".format(config["version"], epoch))
                     iterator.refresh()
+
                 # Test visualizations
                 writer.add_scalar('testepoch/loss', np.mean(data_metric['test']['losses']), global_step=epoch)
                 writer.add_scalar('testepoch/IOU', np.mean(data_metric['test']['ious']), global_step=epoch)

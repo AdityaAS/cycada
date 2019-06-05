@@ -47,9 +47,6 @@ np.random.seed(4325)
 datadir = args.datadir
 ###################################
 
-# Choose GPU ID
-os.environ['CUDA_VISIBLE_DEVICES'] = '0' 
-
 # Problem Params
 src = args.src
 tgt = args.tgt
