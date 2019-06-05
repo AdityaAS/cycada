@@ -5,6 +5,7 @@ from collections import deque
 import itertools
 from datetime import datetime
 import sys
+from collections import deque
 sys.path.append('.')
 import click
 import numpy as np
@@ -26,7 +27,7 @@ from cycada.util import to_tensor_raw
 from cycada.util import fast_hist
 from cycada.tools.util import make_variable
 from cycada.loss_fns import supervised_loss, discriminator_loss
-from cycada.metrics import seg_accuracy
+from cycada.metrics import seg_accuracy, IoU, recall
 
 # def check_label(label, num_cls):
 #     "Check that no labels are out of range"
@@ -187,6 +188,11 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
    
     net.train()
     discriminator.train()
+    IoU_s = deque(maxlen = 100)
+    IoU_t = deque(maxlen = 100)
+
+    Recall_s = deque(maxlen = 100)
+    Recall_t = deque(maxlen = 100)
 
     while iteration < max_iter:
         
@@ -348,15 +354,27 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
                 
                 # compute metrics
                 intersection,union,acc = seg_accuracy(score_t, label_t.data, num_cls) 
+                iou_s = IoU(score_s, label_s)
+                iou_t = IoU(score_t, label_t)
+                rc_s = recall(score_s, label_s)
+                rc_t = recall(score_t, label_t)
+                IoU_s.append(iou_s.item())
+                IoU_t.append(iou_t.item())
+                Recall_s.append(rc_s.item())
+                Recall_t.append(rc_t.item())
                 intersections = np.vstack([intersections[1:,:], intersection[np.newaxis,:]])
                 unions = np.vstack([unions[1:,:], union[np.newaxis,:]]) 
                 accuracy.append(acc.item() * 100)
                 acc = np.mean(accuracy)
                 mIoU =  np.mean(np.maximum(intersections, 1) / np.maximum(unions, 1)) * 100
               
-                info_str += ' acc:{:0.2f}  mIoU:{:0.2f}'.format(acc, mIoU)
+                info_str += ' IoU:{:0.2f}  Recall:{:0.2f}'.format(iou_s, rc_s)
                 writer.add_scalar('metrics/acc', np.mean(accuracy), iteration)
                 writer.add_scalar('metrics/mIoU', np.mean(mIoU), iteration)
+                writer.add_scalar('metrics/RealIoU_Source', np.mean(IoU_s))
+                writer.add_scalar('metrics/RealIoU_Target', np.mean(IoU_t))
+                writer.add_scalar('metrics/RealRecall_Source', np.mean(Recall_s))
+                writer.add_scalar('metrics/RealRecall_Target', np.mean(Recall_t))
                 logging.info(info_str)
                   
             iteration += 1
