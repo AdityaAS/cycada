@@ -85,7 +85,7 @@ from cycada.metrics import seg_accuracy
 #     return intersections, unions, acc
 
 @click.command()
-@click.argument('output')
+@click.option('--output', required=True, type=click.Path(exists=True))
 @click.option('--dataset', required=True, multiple=True)
 @click.option('--datadir', default="", type=click.Path(exists=True))
 @click.option('--lr', '-l', default=0.0001)
@@ -129,18 +129,20 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
     else:
         logdir += '_discrimscore'
     logdir += '/' + datetime.now().strftime('%Y_%b_%d-%H:%M')
-    writer = SummaryWriter()#log_dir=logdir)
+    writer = SummaryWriter(logdir)
+
 
     os.environ['CUDA_VISIBLE_DEVICES'] = gpu
     config_logging()
     print('Train Discrim Only', train_discrim_only)
-    net = get_model(model, num_cls=num_cls, pretrained=True, weights_init=weights_init,
+    net = get_model(model, num_cls=num_cls,
             output_last_ft=discrim_feat)
+    net.load_state_dict(torch.load(weights_init))
     if weights_shared:
         net_src = net # shared weights
     else:
-        net_src = get_model(model, num_cls=num_cls, pretrained=True, 
-                weights_init=weights_init, output_last_ft=discrim_feat)
+        net_src = get_model(model, num_cls=num_cls, output_last_ft=discrim_feat)
+        new_src.load_state_dict(torch.load(weights_init))
         net_src.eval()
 
     print("GOT MODEL")
@@ -149,18 +151,14 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
     idim = num_cls if not discrim_feat else 4096
     print('discrim_feat', discrim_feat, idim)
     print('discriminator init weights: ', weights_discrim)
-    if torch.cuda.is_available():
-        discriminator = Discriminator(input_dim=idim, output_dim=odim, 
-                pretrained=not (weights_discrim==None), 
-                weights_init=weights_discrim).cuda()
-    else:
-        discriminator = Discriminator(input_dim=idim, output_dim=odim, 
+    discriminator = Discriminator(input_dim=idim, output_dim=odim, 
             pretrained=not (weights_discrim==None), 
-            weights_init=weights_discrim)
-        
+            weights_init=weights_discrim).cuda()
+
     loader = AddaDataLoader(net.transform, dataset, datadir, downscale, 
             crop_size=crop_size, half_crop=half_crop,
             batch_size=batch, shuffle=True, num_workers=2)
+    print('dataset', dataset)
 
     # Class weighted loss?
     if cls_weights is not None:
@@ -226,7 +224,6 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
             else:
                 score_s = Variable(net_src(im_s).data, requires_grad=False)
                 f_s = score_s
-                
             dis_score_s = discriminator(f_s)
             
             if discrim_feat:
@@ -236,7 +233,6 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
             else:
                 score_t = Variable(net(im_t).data, requires_grad=False)
                 f_t = score_t
-
             dis_score_t = discriminator(f_t)
             
             dis_pred_concat = torch.cat((dis_score_s, dis_score_t))

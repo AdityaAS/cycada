@@ -43,7 +43,7 @@ class Bilinear(nn.Module):
 class VGG16_FCN8s(nn.Module):
 
     def __init__(self, num_cls=19, pretrained=True, weights_init=None, 
-            output_last_ft=False):
+            output_last_ft=False, eval_mode=True):
         super(VGG16_FCN8s, self).__init__()
 
         self.transform = torchvision.transforms.Compose([
@@ -55,7 +55,7 @@ class VGG16_FCN8s(nn.Module):
 
 
         self.output_last_ft = output_last_ft
-        self.vgg = make_layers(vgg.cfg['D'])
+        self.vgg = make_layers(vgg.cfgs['D'])
         self.vgg_head = nn.Sequential(
             nn.Conv2d(512, 4096, 7),
             nn.ReLU(inplace=True),

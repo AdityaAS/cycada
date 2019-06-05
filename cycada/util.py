@@ -31,7 +31,6 @@ def config_logging(logfile=None):
     logging.config.dictConfig(config)
 
 
-# How is this different from torchvision.transforms.ToTensor()
 def to_tensor_raw(im):
     return torch.from_numpy(np.array(im, np.int64, copy=False))
 
@@ -74,9 +73,7 @@ def fast_hist(a, b, n):
 
 def check_label(label, num_cls):
     "Check that no labels are out of range"
-    print(label.size())
     label_classes = np.unique(label.numpy().flatten())
-    print(label_classes)
     label_classes = label_classes[label_classes < 255]
     if len(label_classes) == 0:
         print('All ignore labels')
@@ -84,7 +81,6 @@ def check_label(label, num_cls):
     class_too_large = label_classes.max() > num_cls
     if class_too_large or label_classes.min() < 0:
         print('Labels out of bound')
-        print(label_classes)
         return False
     return True
 
