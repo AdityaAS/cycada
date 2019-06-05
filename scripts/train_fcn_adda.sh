@@ -1,5 +1,5 @@
 
-gpu=1
+gpu=0
 
 ######################
 # loss weight params #
@@ -13,9 +13,8 @@ lambda_g=0.1
 # train params #
 ################
 max_iter=100000
-crop=256
-#768
-snapshot=5000
+crop=120
+snapshot=5
 batch=1
 
 weight_share='weights_shared'
@@ -25,11 +24,8 @@ discrim='discrim_score'
 # Data #
 ########
 src='color2blk'
-#'cyclegta5'
 tgt='blk'
-#'cityscapes'
-datadir='/home/ubuntu/anthro-efs/anthro-backup-virginia/data/'
-
+datadir='/home/users/aditya/data'
 
 resdir="results/${src}_to_${tgt}/adda_sgd/${weight_share}_nolsgan_${discrim}"
 
@@ -41,17 +37,16 @@ baseiter=100000
 
 num_cls=2
 
-#base_model="base_models/${model}-${src}-iter${baseiter}.pth"
+base_model="/home/users/aditya/sohan/cycada/runs/fcn8s/singleview_opendr_solid/color/checkpoints/iter49.pth"
 outdir="${resdir}/${model}/lr${lr}_crop${crop}_ld${lambda_d}_lg${lambda_g}_momentum${momentum}"
 
 # Run python script #
 CUDA_VISIBLE_DEVICES=${gpu} python scripts/train_fcn_adda.py \
-    ${outdir} \
+	--output ${outdir} \
     --dataset ${src} --dataset ${tgt} --datadir ${datadir} \
-    --lr ${lr} --momentum ${momentum} --gpu 0 \
+    --lr ${lr} --momentum ${momentum} --gpu ${gpu} \
     --lambda_d ${lambda_d} --lambda_g ${lambda_g} \
-    --model ${model} \
-    --"${weight_share}" --${discrim} --no_lsgan \
+    --model ${model} --weights_init ${base_model}\
+    --weights_shared --discrim_feat --no_lsgan \
     --max_iter ${max_iter} --crop_size ${crop} --batch ${batch} \
-    --snapshot $snapshot --num_cls $num_cls
-#    --weights_init ${base_model} \
+    --snapshot ${snapshot} --num_cls ${num_cls}

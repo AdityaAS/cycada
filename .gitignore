@@ -1,3 +1,4 @@
+*.pth
 log.txt
 output.file
 logs.txt
@@ -10,3 +11,6 @@ vcycada/*
 runs/*
 results/*
 *.ipynb_checkpoints
+configs/*
+*.png
+*.jpg

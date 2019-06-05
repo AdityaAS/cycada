@@ -3,6 +3,9 @@ import os.path
 
 import requests
 import numpy as np
+import sys
+sys.path.append('../')
+
 logger = logging.getLogger(__name__)
 
 def convert_image_by_pixformat_normalize(src_image):
@@ -30,25 +33,6 @@ def download(url, dest):
 
 # TODO: Poor naming: Change this.
 # TODO: WTF does get_transform2 mean.
-def get_transform2(dataset_name, net_transform, downscale):
-    "Returns image and label transform to downscale, crop and prepare for net."
-    orig_size = get_orig_size(dataset_name)
-    transform = []
-    target_transform = []
-    if downscale is not None:
-        transform.append(transforms.Resize(orig_size // downscale))
-        target_transform.append(
-                transforms.Resize(orig_size // downscale,
-                    interpolation=Image.NEAREST))
-
-    transform.extend([transforms.Resize(orig_size), net_transform]) 
-    target_transform.extend([transforms.Resize(orig_size, interpolation=Image.NEAREST),
-        to_tensor_raw]) 
-
-    transform = transforms.Compose(transform)
-    target_transform = transforms.Compose(target_transform)
-
-    return transform, target_transform
 
 # TODO: Poor Naming. Change this.
 def get_transform(params, image_size, num_channels):

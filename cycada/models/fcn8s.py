@@ -43,7 +43,7 @@ class Bilinear(nn.Module):
 class VGG16_FCN8s(nn.Module):
 
     def __init__(self, num_cls=19, pretrained=True, weights_init=None, 
-            output_last_ft=False):
+            output_last_ft=False, eval_mode=True):
         super(VGG16_FCN8s, self).__init__()
 
         self.transform = torchvision.transforms.Compose([

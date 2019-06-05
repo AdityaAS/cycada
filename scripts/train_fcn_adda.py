@@ -5,6 +5,8 @@ from collections import deque
 import itertools
 from datetime import datetime
 
+# TODO: Replace deque with list
+
 import sys
 sys.path.append('.')
 
@@ -22,8 +24,8 @@ from torch.autograd import Variable
 from cycada.data.adda_datasets import AddaDataLoader
 from cycada.data.cyclegta5 import CycleGTA5
 from cycada.data.usps import USPS
-from cycada.data.color2blk import color2blk
-from cycada.data.blk import blk
+from cycada.data.color2blk import Color2Blk
+from cycada.data.blk import Blk
 
 from cycada.models import get_model
 from cycada.models.models import models
@@ -34,7 +36,7 @@ from cycada.util import fast_hist
 from cycada.tools.util import make_variable
 
 from cycada.loss_fns import supervised_loss, discriminator_loss
-from cycada.metrics import seg_accuracy
+from cycada.metrics import seg_accuracy, IoU, recall
 
 
 def check_label(label, num_cls):
@@ -100,7 +102,7 @@ def norm(tensor):
 
 
 @click.command()
-@click.argument('output')
+@click.option('--output', required=True, type=click.Path(exists=True))
 @click.option('--dataset', required=True, multiple=True)
 @click.option('--datadir', default="", type=click.Path(exists=True))
 @click.option('--lr', '-l', default=0.0001)
@@ -143,18 +145,19 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
     else:
         logdir += '_discrimscore'
     logdir += '/' + datetime.now().strftime('%Y_%b_%d-%H:%M')
-    writer = SummaryWriter()#log_dir=logdir)
+    writer = SummaryWriter(logdir)
 
     os.environ['CUDA_VISIBLE_DEVICES'] = gpu
     config_logging()
     print('Train Discrim Only', train_discrim_only)
-    net = get_model(model, num_cls=num_cls, pretrained=True, weights_init=weights_init,
-            output_last_ft=discrim_feat, finetune=True)
+    net = get_model(model, num_cls=num_cls,
+            output_last_ft=discrim_feat)
+    net.load_state_dict(torch.load(weights_init))
     if weights_shared:
         net_src = net # shared weights
     else:
-        net_src = get_model(model, num_cls=num_cls, pretrained=True, 
-                weights_init=weights_init, output_last_ft=discrim_feat, finetune=True)
+        net_src = get_model(model, num_cls=num_cls, output_last_ft=discrim_feat)
+        new_src.load_state_dict(torch.load(weights_init))
         net_src.eval()
 
     print("GOT MODEL")
@@ -163,6 +166,7 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
     idim = num_cls if not discrim_feat else 4096
     print('discrim_feat', discrim_feat, idim)
     print('discriminator init weights: ', weights_discrim)
+
     if torch.cuda.is_available():
         discriminator = Discriminator(input_dim=idim, output_dim=odim, 
             pretrained=not (weights_discrim==None), 
@@ -172,9 +176,11 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
             pretrained=not (weights_discrim==None), 
             weights_init=weights_discrim)
 
+
     loader = AddaDataLoader(net.transform, dataset, datadir, downscale, 
             crop_size=crop_size, half_crop=half_crop,
             batch_size=batch, shuffle=True, num_workers=2)
+    print('dataset', dataset)
 
     # Class weighted loss?
     if cls_weights is not None:
@@ -203,6 +209,11 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
    
     net.train()
     discriminator.train()
+    IoU_s = deque(maxlen = 100)
+    IoU_t = deque(maxlen = 100)
+
+    Recall_s = deque(maxlen = 100)
+    Recall_t = deque(maxlen = 100)
 
     while iteration < max_iter:
         
@@ -240,7 +251,6 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
             else:
                 score_s = Variable(net_src(im_s).data, requires_grad=False)
                 f_s = score_s
-                
             dis_score_s = discriminator(f_s)
             
             if discrim_feat:
@@ -250,7 +260,6 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
             else:
                 score_t = Variable(net(im_t).data, requires_grad=False)
                 f_t = score_t
-
             dis_score_t = discriminator(f_t)
             
             dis_pred_concat = torch.cat((dis_score_s, dis_score_t))
@@ -288,8 +297,6 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
             ###########################
            
             dom_acc_thresh = 55
-
-
 
             if not train_discrim_only and np.mean(accuracies_dom) > dom_acc_thresh:
               
@@ -370,15 +377,27 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
 
                 # compute metrics
                 intersection,union,acc = seg_accuracy(score_t, label_t.data, num_cls) 
+                iou_s = IoU(score_s, label_s)
+                iou_t = IoU(score_t, label_t)
+                rc_s = recall(score_s, label_s)
+                rc_t = recall(score_t, label_t)
+                IoU_s.append(iou_s.item())
+                IoU_t.append(iou_t.item())
+                Recall_s.append(rc_s.item())
+                Recall_t.append(rc_t.item())
                 intersections = np.vstack([intersections[1:,:], intersection[np.newaxis,:]])
                 unions = np.vstack([unions[1:,:], union[np.newaxis,:]]) 
                 accuracy.append(acc.item() * 100)
                 acc = np.mean(accuracy)
                 mIoU =  np.mean(np.maximum(intersections, 1) / np.maximum(unions, 1)) * 100
               
-                info_str += ' acc:{:0.2f}  mIoU:{:0.2f}'.format(acc, mIoU)
+                info_str += ' IoU:{:0.2f}  Recall:{:0.2f}'.format(iou_s, rc_s)
                 writer.add_scalar('metrics/acc', np.mean(accuracy), iteration)
                 writer.add_scalar('metrics/mIoU', np.mean(mIoU), iteration)
+                writer.add_scalar('metrics/RealIoU_Source', np.mean(IoU_s))
+                writer.add_scalar('metrics/RealIoU_Target', np.mean(IoU_t))
+                writer.add_scalar('metrics/RealRecall_Source', np.mean(Recall_s))
+                writer.add_scalar('metrics/RealRecall_Target', np.mean(Recall_t))
                 logging.info(info_str)
                 print(info_str)
 
