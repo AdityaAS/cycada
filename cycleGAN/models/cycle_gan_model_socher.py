@@ -1,8 +1,11 @@
 import torch
+import sys
 import itertools
 from util.image_pool import ImagePool
 from .base_model import BaseModel
 from . import networks
+sys.path.append('../../')
+sys.path.append('../')
 from cycada.models.models import get_model, models
 from cycada.loss_fns import supervised_loss
 
@@ -50,18 +53,18 @@ class CycleGANModel(BaseModel):
             self.netM_A = get_model(opt.which_model_netM, num_cls=opt.num_cls)
             self.netM_B = get_model(opt.which_model_netM, num_cls=opt.num_cls)
 
-            if opt.which_direction == 'AtoB':
-                netM_A.load_state_dict(torch.load(opt.Mmodel_path))
+            # if opt.which_direction == 'AtoB':
+            #     netM_A.load_state_dict(torch.load(opt.Mmodel_path))
 
-            else:
-                netM_B.load_state_dict(torch.load(opt.Mmodel_path))
+            # else:
+            #     netM_B.load_state_dict(torch.load(opt.Mmodel_path))
 
         if self.isTrain:
             self.fake_A_pool = ImagePool(opt.pool_size)
             self.fake_B_pool = ImagePool(opt.pool_size)
             # define loss functions
             self.criterionGAN = networks.GANLoss(use_lsgan=not opt.no_lsgan).to(self.device)
-            self.criterionCycle = supervised_loss()
+            self.criterionCycle = supervised_loss
             self.criterionIdt = torch.nn.L1Loss()
             # initialize optimizers
             self.optimizer_G = torch.optim.Adam(itertools.chain(self.netG_A.parameters(), self.netG_B.parameters()),
@@ -133,7 +136,7 @@ class CycleGANModel(BaseModel):
         #self.loss_cycle_B = self.criterionCycle(self.rec_B, self.real_B) * lambda_B
         # combined loss
         self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_idt_A + self.loss_idt_B
-        self.loss_G.backward()
+        self.loss_G.backward(retain_graph=True)
 
     def backward_M(self):
 
@@ -145,11 +148,11 @@ class CycleGANModel(BaseModel):
         self.preds_real_B = self.netM_B(self.real_B)
         self.preds_fake_B = self.netM_B(self.fake_B)
         #forward cycle
-        self.loss_cycle_A = self.criterionCycle(self.pred_real_A, self.labels_A) * lambda_A
+        self.loss_cycle_A = self.criterionCycle(self.preds_real_A, self.A_label.cuda()) * lambda_A
         #backward cycle loss
         self.label_fake_B = torch.max(self.preds_fake_A, dim=1)[1]
-        self.loss_cycle_B1 = self.criterionCycle(self.pred_real_B, self.label_fake_B)
-        self.loss_cycle_B2 = self.criterionCycle(self.preds_fake_B, self.labels_A) 
+        self.loss_cycle_B1 = self.criterionCycle(self.preds_real_B, self.label_fake_B)
+        self.loss_cycle_B2 = self.criterionCycle(self.preds_fake_B, self.A_label.cuda())
         self.loss_cycle_B = (self.loss_cycle_B1 + self.loss_cycle_B2) * lambda_B
         #combined loss
         self.loss_G_socher = self.loss_cycle_A + self.loss_cycle_B

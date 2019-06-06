@@ -87,7 +87,7 @@ class UnalignedALabeledDataset(BaseDataset):
 
     def __getitem__(self, index):
         A_path = self.A_paths[index % self.A_size]
-        A_label_paths = self.A_label_paths[index % self.A_label_size]
+        A_label_paths = self.A_label_paths[index % self.A_size]
 
         if self.opt.serial_batches:
             index_B = index % self.B_size
@@ -100,14 +100,21 @@ class UnalignedALabeledDataset(BaseDataset):
         try:
             A_img = Image.fromarray(cv2.imread(A_path))
             B_img = Image.fromarray(cv2.imread(B_path))
-            A_label = cv2.imread(A_label_paths)
+            A_label = Image.fromarray(cv2.imread(A_label_paths))
         except:
             print("Error in loading{}".format(B_img))
         A = self.transform(A_img)
         B = self.transform(B_img)
-        A_label = torch.Tensor(A_label.transpose(2, 0, 1)).mean(dim=0) / 255
-        A_label = self.transform(A_label)
-        
+        #A_label
+        #A_label = torch.Tensor(A_label.transpose(2, 0, 1)).mean(dim=0) / 255
+        A_label = self.transform(A_label).mean(dim=0) / 255
+        #print(A_label.size())
+        #import pdb; pdb.set_trace()
+
+        #print(A_label.size())
+        #import pdb; pdb.set_trace();
+        #A_label = A_label.transpose(2, 0, 1).mean(dim=0) / 255
+
         if self.opt.which_direction == 'BtoA':
             input_nc = self.opt.output_nc
             output_nc = self.opt.input_nc
@@ -124,7 +131,7 @@ class UnalignedALabeledDataset(BaseDataset):
             B = tmp.unsqueeze(0)
 
         
-        return {'A': A, 'B': B, 'A_label': A_label
+        return {'A': A, 'B': B, 'A_label': A_label,
                 'A_paths': A_path, 'B_paths': B_path, 'A_label_paths': A_label_paths}
 
     def __len__(self):
