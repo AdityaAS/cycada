@@ -21,7 +21,7 @@ def CreateDataset(opt):
         from data.single_dataset import SingleDataset
         dataset = SingleDataset()
     elif opt.dataset_mode == 'unaligned_A_labeled':
-        from data.unaligned_A_labeled_dataset import UnalignedALabeledDataset
+        from data.unaligned_dataset import UnalignedALabeledDataset
         dataset = UnalignedALabeledDataset()
     elif opt.dataset_mode == 'mnist_svhn':
         from data.mnist_svhn_dataset import MnistSvhnDataset
@@ -36,6 +36,7 @@ def CreateDataset(opt):
     print("dataset [%s] was created" % (dataset.name()))
     dataset.initialize(opt)
     return dataset
+
 
 class CustomDatasetDataLoader(BaseDataLoader):
     def name(self):

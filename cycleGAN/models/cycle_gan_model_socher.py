@@ -3,6 +3,8 @@ import itertools
 from util.image_pool import ImagePool
 from .base_model import BaseModel
 from . import networks
+from cycada.models.models import get_model, models
+from cycada.loss_fns import supervised_loss
 
 
 class CycleGANModel(BaseModel):
@@ -45,12 +47,21 @@ class CycleGANModel(BaseModel):
                                             opt.which_model_netD,
                                             opt.n_layers_D, opt.norm, use_sigmoid, opt.init_type, self.gpu_ids)
 
+            self.netM_A = get_model(opt.which_model_netM, num_cls=opt.num_cls)
+            self.netM_B = get_model(opt.which_model_netM, num_cls=opt.num_cls)
+
+            if opt.which_direction == 'AtoB':
+                netM_A.load_state_dict(torch.load(opt.Mmodel_path))
+
+            else:
+                netM_B.load_state_dict(torch.load(opt.Mmodel_path))
+
         if self.isTrain:
             self.fake_A_pool = ImagePool(opt.pool_size)
             self.fake_B_pool = ImagePool(opt.pool_size)
             # define loss functions
             self.criterionGAN = networks.GANLoss(use_lsgan=not opt.no_lsgan).to(self.device)
-            self.criterionCycle = torch.nn.L1Loss()
+            self.criterionCycle = supervised_loss()
             self.criterionIdt = torch.nn.L1Loss()
             # initialize optimizers
             self.optimizer_G = torch.optim.Adam(itertools.chain(self.netG_A.parameters(), self.netG_B.parameters()),
@@ -66,13 +77,14 @@ class CycleGANModel(BaseModel):
         self.real_A = input['A' if AtoB else 'B'].to(self.device)
         self.real_B = input['B' if AtoB else 'A'].to(self.device)
         self.image_paths = input['A_paths' if AtoB else 'B_paths']
+        self.A_label = input['A_label']
 
     def forward(self):
         self.fake_B = self.netG_A(self.real_A)
         self.rec_A = self.netG_B(self.fake_B)
 
         self.fake_A = self.netG_B(self.real_B)
-        self.rec_B = self.netG_A(self.fake_A)
+        self.rec_B = self.netG_A(self.fake_A)            
 
     def backward_D_basic(self, netD, real, fake):
         # Real
@@ -116,11 +128,31 @@ class CycleGANModel(BaseModel):
         # GAN loss D_B(G_B(B))
         self.loss_G_B = self.criterionGAN(self.netD_B(self.fake_A), True)
         # Forward cycle loss
-        self.loss_cycle_A = self.criterionCycle(self.rec_A, self.real_A) * lambda_A
+        #self.loss_cycle_A = self.criterionCycle(self.rec_A, self.real_A) * lambda_A
         # Backward cycle loss
-        self.loss_cycle_B = self.criterionCycle(self.rec_B, self.real_B) * lambda_B
+        #self.loss_cycle_B = self.criterionCycle(self.rec_B, self.real_B) * lambda_B
         # combined loss
-        self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_cycle_A + self.loss_cycle_B + self.loss_idt_A + self.loss_idt_B
+        self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_idt_A + self.loss_idt_B
+        self.loss_G.backward()
+
+    def backward_M(self):
+
+        lambda_A = self.opt.lambda_A
+        lambda_B = self.opt.lambda_B
+
+        self.preds_real_A = self.netM_A(self.real_A)
+        self.preds_fake_A = self.netM_A(self.fake_A)
+        self.preds_real_B = self.netM_B(self.real_B)
+        self.preds_fake_B = self.netM_B(self.fake_B)
+        #forward cycle
+        self.loss_cycle_A = self.criterionCycle(self.pred_real_A, self.labels_A) * lambda_A
+        #backward cycle loss
+        self.label_fake_B = torch.max(self.preds_fake_A, dim=1)[1]
+        self.loss_cycle_B1 = self.criterionCycle(self.pred_real_B, self.label_fake_B)
+        self.loss_cycle_B2 = self.criterionCycle(self.preds_fake_B, self.labels_A) 
+        self.loss_cycle_B = (self.loss_cycle_B1 + self.loss_cycle_B2) * lambda_B
+        #combined loss
+        self.loss_G_socher = self.loss_cycle_A + self.loss_cycle_B
         self.loss_G.backward()
 
     def optimize_parameters(self):
@@ -131,6 +163,7 @@ class CycleGANModel(BaseModel):
         self.set_requires_grad([self.netD_A, self.netD_B], False)
         self.optimizer_G.zero_grad()
         self.backward_G()
+        self.backward_M()
         self.optimizer_G.step()
         # D_A and D_B
         self.set_requires_grad([self.netD_A, self.netD_B], True)
