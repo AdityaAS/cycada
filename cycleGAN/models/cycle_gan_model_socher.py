@@ -53,11 +53,11 @@ class CycleGANModel(BaseModel):
             self.netM_A = get_model(opt.which_model_netM, num_cls=opt.num_cls)
             self.netM_B = get_model(opt.which_model_netM, num_cls=opt.num_cls)
 
-            if opt.which_direction == 'AtoB':
-                netM_A.load_state_dict(torch.load(opt.Mmodel_path))
+            #if opt.which_direction == 'AtoB':
+            #    netM_A.load_state_dict(torch.load(opt.Mmodel_path))
 
-            else:
-                netM_B.load_state_dict(torch.load(opt.Mmodel_path))
+            #else:
+            #    netM_B.load_state_dict(torch.load(opt.Mmodel_path))
 
         if self.isTrain:
             self.fake_A_pool = ImagePool(opt.pool_size)
