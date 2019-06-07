@@ -71,9 +71,12 @@ class CycleGANModel(BaseModel):
                                                 lr=opt.lr, betas=(opt.beta1, 0.999))
             self.optimizer_D = torch.optim.Adam(itertools.chain(self.netD_A.parameters(), self.netD_B.parameters()),
                                                 lr=opt.lr, betas=(opt.beta1, 0.999))
+            self.optimizer_M = torch.optim.Adam(itertools.chain(self.netM_A.parameters(), self.netM_B.parameters()),
+                                                lr=opt.lr, betas=(opt.beta1, 0.999))
             self.optimizers = []
             self.optimizers.append(self.optimizer_G)
             self.optimizers.append(self.optimizer_D)
+            self.optimizers.append(self.optimizer_M)
 
     def set_input(self, input):
         AtoB = self.opt.which_direction == 'AtoB'
@@ -165,8 +168,10 @@ class CycleGANModel(BaseModel):
         # G_A and G_B
         self.set_requires_grad([self.netD_A, self.netD_B], False)
         self.optimizer_G.zero_grad()
+        self.optimizer_M.zero_grad()
         self.backward_G()
         self.backward_M()
+        self.optimizer_M.step()
         self.optimizer_G.step()
         # D_A and D_B
         self.set_requires_grad([self.netD_A, self.netD_B], True)
