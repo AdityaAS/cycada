@@ -278,4 +278,5 @@ if __name__ == '__main__':
     if exists(p):
         main(sys.argv[1])
     else :
+        print(p)
         print("Incorrect Path")

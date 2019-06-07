@@ -3,17 +3,37 @@ from options.train_options import TrainOptions
 from data import CreateDataLoader
 from models import create_model
 from util.visualizer import Visualizer
-
+import argparse
+import torch
 # Well written!
 if __name__ == '__main__':
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument("--local_rank", type=int)
+    # args = parser.parse_args()
+
+
+
     opt = TrainOptions().parse()
+    # print(opt.local_rank)
+    # torch.cuda.set_device(opt.local_rank)
+    # torch.distributed.init_process_group(backend='gloo')
+
+                                                        #   ,device_ids=[args.local_rank]
+                                                        #   ,output_device=args.local_rank)
+    
     data_loader = CreateDataLoader(opt)
     dataset = data_loader.load_data()
-    
     dataset_size = len(data_loader)
     print('#training images = %d' % dataset_size)
 
+
     model = create_model(opt)
+    try:
+       model.load_networks('latest')
+       print("=============================\n loading model \n ===========================")
+
+    except:
+       print("model not loaded")
     model.setup(opt)
     visualizer = Visualizer(opt)
     total_steps = 0
