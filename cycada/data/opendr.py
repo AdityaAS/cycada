@@ -4,13 +4,13 @@ import torch
 from torch.utils.data import Dataset
 from glob import glob
 from os.path import join, exists
-
+import json
 from cycada.data.data_loader import register_data_params, register_dataset_obj
 from cycada.data.data_loader import DatasetParams
 import cv2
 from cycada.data.util import convert_image_by_pixformat_normalize
 
-@register_data_params('singleview_opendr_solid')
+@register_data_params('opendr')
 # @register_data_params('singleview_opendr_color_100k_copy')
 class OpenDRParams(DatasetParams):
     num_channels = 3
@@ -19,16 +19,26 @@ class OpenDRParams(DatasetParams):
     num_cls = 2
     target_transform = None
 
+    def __init__(self, name):
+        config = None
+        with open(join("../../dataset_configs", name), 'r') as f:
+            config = json.load(f)
+        self.num_channels = config["num_channels"]
+        self.image_size = config["image_size"]
+        self.mean = config["mean"]
+        self.num_cls = config["num_cls"]
+        self.target_transform = config["target_transform"]
+
 # @register_dataset_obj('singleview_opendr_color_100k_copy')
-@register_dataset_obj('singleview_opendr_solid')
+@register_dataset_obj('opendr')
 class OpenDR(Dataset):
 
-    def __init__(self, root, num_cls=2, split='train', remap_labels=True, 
+    def __init__(self, name, root, num_cls=2, split='train', remap_labels=True, 
             transform=None, target_transform=None, size=(256, 256)):
         self.root = root
         self.split = split
         self.remap_labels = remap_labels
-        self.name = "singleview_opendr_solid"
+        self.name = name
         self.transform = transform
         self.images = []
         self.segmasks = []

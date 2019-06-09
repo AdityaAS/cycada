@@ -15,6 +15,7 @@ import torch.nn.functional as F
 import torchvision
 import torchvision.utils as vutils
 from tensorboardX import SummaryWriter
+#from torch.utils.tensorboard import SummaryWriter
 
 from PIL import Image
 from copy import copy
@@ -43,6 +44,8 @@ def main(config_path):
     with open(config_path, 'r') as f:
         config = json.load(f)
 
+    os.environ['CUDA_VISIBLE_DEVICES'] = config["gpu"]
+
     config_logging()
     
     # Initialize SummaryWriter - For tensorboard visualizations
@@ -58,21 +61,12 @@ def main(config_path):
     # join(config["output"], config["dataset"], config["dataset"] + '_' + config["model"], 
     #                 'v{}'.format(config["version"]))
 
-    versionpath = join('runs', config["model"], config["dataset"], 'v{}'.format(config["version"]))
-
-    if not exists(versionpath):
-        os.makedirs(versionpath)
-        os.makedirs(checkpointdir)
-        os.makedirs(logdir)
-    elif exists(versionpath) and config["force"]:
-        shutil.rmtree(versionpath)
-        os.makedirs(versionpath)
-        os.makedirs(checkpointdir)
-        os.makedirs(logdir)
-    else:
-        print("Version {} already exists! Please run with different version number".format(config["version"]))
-        logging.info("Version {} already exists! Please run with different version number".format(config["version"]))
-        sys.exit(-1)
+    for path in [checkpointdir, logdir]:
+        if not exists(path):
+            os.makedirs(path)
+        elif not config["fine_tune"]:
+            shutil.rmtree(path)
+            os.makedirs(path)
 
     writer = SummaryWriter(logdir)
 
@@ -82,16 +76,15 @@ def main(config_path):
 
     model_parameters = filter(lambda p: p.requires_grad, net.parameters())
     params = sum([np.prod(p.size()) for p in model_parameters])
-    net.cuda()
 
     dataset = config["dataset"] 
     num_workers = config["num_workers"]
     pin_memory = config["pin_memory"]
     dataset = dataset[0]
 
-    datasets_train = get_dataset(config["dataset"], join(config["datadir"], config["dataset"]), split='train')
-    datasets_val = get_dataset(config["dataset"], join(config["datadir"], config["dataset"]), split='val')
-    datasets_test = get_dataset(config["dataset"], join(config["datadir"], config["dataset"]), split='test')
+    datasets_train = get_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='train')
+    datasets_val = get_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='val')
+    datasets_test = get_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='test')
 
     if config["weights"] is not None:
         weights = np.loadtxt(config["weights"])
@@ -120,9 +113,8 @@ def main(config_path):
                                             pin_memory=pin_memory)
 
     data_metric = {'train': None, 'val' : None, 'test' : None}
-    Q_size = len(train_loader)/config["batch_size"]
-
-    metrics = {'losses': list(), 'ious': list(), 'recalls': list()}
+    Q_size = int(len(train_loader)/config["batch_size"])
+    metrics = {'losses': deque(maxlen=Q_size), 'ious': deque(maxlen=Q_size), 'recalls': deque(maxlen=Q_size)}
     
     data_metric['train'] = copy(metrics)
     data_metric['val'] = copy(metrics)
@@ -134,11 +126,10 @@ def main(config_path):
     for epoch in range(config["num_epochs"]):
         if config["phase"] == 'train':
             net.train()
-            iterator = tqdm(iter(train_loader))
-
+            iterator = iter(train_loader)
             # Epoch train
-            print("Train Epoch!")
-            for im, label in iterator:
+            print("Epoch_train!")
+            for im, label in tqdm(iterator):
                 iteration += 1
                 # Clear out gradients
                 opt.zero_grad()
@@ -152,7 +143,6 @@ def main(config_path):
                 preds = net(im)
                 #score = preds.data
                 #_, pred = torch.max(score, 1)
-
                 #hist += fast_hist(label.cpu().numpy().flatten(), pred.cpu().numpy().flatten(),num_cls)
 
                 #acc_overall, acc_percls, iu, fwIU = result_stats(hist)
@@ -171,6 +161,8 @@ def main(config_path):
                 # step gradients
                 opt.step()
                 
+                print(iteration, config["train_tf_interval"])
+
                 # Train visualizations - each iteration
                 if iteration % config["train_tf_interval"] == 0:
                     vizz = preprocess_viz(im, preds, label)
@@ -179,9 +171,6 @@ def main(config_path):
                     writer.add_scalar('train/recall', rc.item(), iteration)
                     imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
                     writer.add_image('{}_image_data'.format('train'), imutil, iteration)
-
-                iterator.set_description("TRAIN V: {} | Epoch: {}".format(config["version"], epoch))
-                iterator.refresh()
 
             # Train visualizations - per epoch
             vizz = preprocess_viz(im, preds, label)
@@ -198,15 +187,11 @@ def main(config_path):
             if epoch % config["checkpoint_interval"] == 0:
                 torch.save(net.state_dict(), join(checkpointdir, 'iter{}.pth'.format(epoch)))	
 
-            # Train epoch done. Free up lists
-            for key in data_metric['train'].keys():
-                data_metric['train'][key] = list()
-
             if epoch % config["val_epoch_interval"] == 0:
                 net.eval()
                 print("Val_epoch!")
-                iterator = tqdm(iter(val_loader))
-                for im, label in iterator:
+                iterator = iter(val_loader)
+                for im, label in tqdm(iterator):
                     # load data/label
                     im = make_variable(im, requires_grad=False)
                     label = make_variable(label, requires_grad=False)
@@ -220,10 +205,7 @@ def main(config_path):
                     data_metric['val']['losses'].append(loss.item())
                     data_metric['val']['ious'].append(iou.item())
                     data_metric['val']['recalls'].append(rc.item())
-
-                    iterator.set_description("VAL V: {} | Epoch: {}".format(config["version"], epoch))
-                    iterator.refresh()
-
+                #print(np.mean(data_metric['val']['ious']))
                 # Val visualizations
                 vizz = preprocess_viz(im, preds, label)
                 writer.add_scalar('valepoch/loss', np.mean(data_metric['val']['losses']), global_step=epoch)
@@ -232,15 +214,12 @@ def main(config_path):
                 imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
                 writer.add_image('{}_image_data'.format('val'), imutil, global_step=epoch)
 
-                # Val epoch done. Free up lists
-                for key in data_metric['val'].keys():
-                    data_metric['val'][key] = list()
             # Epoch Test
             if epoch % config["test_epoch_interval"] == 0:
                 net.eval()
                 print("Test_epoch!")
-                iterator = tqdm(iter(test_loader))
-                for im, label in iterator:
+                iterator = iter(test_loader)
+                for im, label in tqdm(iterator):
                     # load data/label
                     im = make_variable(im, requires_grad=False)
                     label = make_variable(label, requires_grad=False)
@@ -255,17 +234,10 @@ def main(config_path):
                     data_metric['test']['ious'].append(iou.item())
                     data_metric['test']['recalls'].append(rc.item())
 
-                    iterator.set_description("TEST V: {} | Epoch: {}".format(config["version"], epoch))
-                    iterator.refresh()
-
                 # Test visualizations
                 writer.add_scalar('testepoch/loss', np.mean(data_metric['test']['losses']), global_step=epoch)
                 writer.add_scalar('testepoch/IOU', np.mean(data_metric['test']['ious']), global_step=epoch)
                 writer.add_scalar('testepoch/Recall', np.mean(data_metric['test']['recalls']), global_step=epoch)
-
-                # Test epoch done. Free up lists
-                for key in data_metric['test'].keys():
-                    data_metric['test'][key] = list()
 
             if config["step"] is not None and epoch % config["step"] == 0:
                 logging.info('Decreasing learning rate by 0.1 factor')
@@ -278,5 +250,4 @@ if __name__ == '__main__':
     if exists(p):
         main(sys.argv[1])
     else :
-        print(p)
         print("Incorrect Path")

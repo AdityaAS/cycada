@@ -1,7 +1,8 @@
 {
 	"phase" : "train",
+	"data_type" : "opendr",
 	"dataset": "singleview_opendr_solid",
-	"datadir": "/home/users/aditya/data/",
+	"datadir": "/home/ubuntu/anthro-efs/anthro-backup-virginia/data/HMR_baby/datasets",
 	"batch_size": 16,
 	"lr": 0.001,
 	"step": null,
@@ -18,7 +19,7 @@
 	"model": "fcn8s",
 	"force": true,
 	"num_cls": 2,
-	"num_workers": 2,
+	"num_workers": 4,
 	"pin_memory": true,
 	"gpu": "0",
 	"output": "results",
