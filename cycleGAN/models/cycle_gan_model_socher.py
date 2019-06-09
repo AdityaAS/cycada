@@ -52,12 +52,14 @@ class CycleGANModel(BaseModel):
 
             self.netM_A = get_model(opt.which_model_netM, num_cls=opt.num_cls)
             self.netM_B = get_model(opt.which_model_netM, num_cls=opt.num_cls)
-
-            #if opt.which_direction == 'AtoB':
-            #    netM_A.load_state_dict(torch.load(opt.Mmodel_path))
-
-            #else:
-            #    netM_B.load_state_dict(torch.load(opt.Mmodel_path))
+            if not opt.continue_train:
+                print("pretrained segnet loaded")
+                #if opt.which_direction == 'AtoB':
+                self.netM_A.load_state_dict(torch.load(opt.Mmodel_path))
+                print("loaded_A")
+                #else:
+                self.netM_B.load_state_dict(torch.load(opt.Mmodel_path))
+                print("loaded_B")
 
         if self.isTrain:
             self.fake_A_pool = ImagePool(opt.pool_size)
@@ -159,7 +161,7 @@ class CycleGANModel(BaseModel):
         self.loss_cycle_B = (self.loss_cycle_B1 + self.loss_cycle_B2) * lambda_B
         #combined loss
         self.loss_G_socher = self.loss_cycle_A + self.loss_cycle_B
-        self.loss_G.backward()
+        self.loss_G_socher.backward()
 
     def optimize_parameters(self):
         # forward
