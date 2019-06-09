@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.io
 import torch
+import os
 from torch.utils.data import Dataset
 from glob import glob
 from os.path import join, exists
@@ -21,7 +22,8 @@ class OpenDRParams(DatasetParams):
 
     def __init__(self, name):
         config = None
-        with open(join("../../dataset_configs", name), 'r') as f:
+        print("PARAM: {}".format(os.getcwd()))
+        with open(join("dataset_configs", name+".json"), 'r') as f:
             config = json.load(f)
         self.num_channels = config["num_channels"]
         self.image_size = config["image_size"]

@@ -106,6 +106,10 @@ class DatasetParams(object):
     num_cls      = 10
     target_transform = None
 
+    def __repr__(self):
+        return "num_channels: {}\nimage_size: {}\nmean: {}\nnum_cls:{}\n"\
+        .format(self.num_channels, self.image_size, self.mean, self.num_cls)
+
 def get_dataset(name, data_type, rootdir, dset, image_size, num_channels, download=True):
     is_train = (dset == 'train')
     print('get dataset:', name, rootdir, dset)
@@ -118,4 +122,6 @@ def get_dataset(name, data_type, rootdir, dset, image_size, num_channels, downlo
 
 
 def get_fcn_dataset(name, data_type, rootdir, **kwargs):
+    params = data_params[data_type](name)
+    print(params)
     return dataset_obj[data_type](name, rootdir, **kwargs)
