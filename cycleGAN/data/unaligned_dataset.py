@@ -70,10 +70,12 @@ class UnalignedALabeledDataset(BaseDataset):
     def initialize(self, opt):
         self.opt = opt
         self.root = opt.dataroot
-        self.dir_A = os.path.join(opt.dataroot, opt.phase + 'A')
-        self.dir_B = os.path.join(opt.dataroot, opt.phase + 'A')
-        self.dir_Alabel = os.path.join(opt.dataroot, opt.phase + 'A_label')
-
+        #self.dir_A = os.path.join(opt.dataroot, opt.phase + 'A')
+        #self.dir_B = os.path.join(opt.dataroot, opt.phase + 'B')
+        #self.dir_Alabel = os.path.join(opt.dataroot_A, opt.phase + )
+        self.dir_A = os.path.join(opt.dataroot_A, "images")
+        self.dir_B = os.path.join(opt.dataroot_B, "images")
+        self.dir_Alabel = os.path.join(opt.dataroot_A, "segmasks")
         self.A_paths = make_dataset(self.dir_A)
         self.B_paths = make_dataset(self.dir_B)
         self.A_label_paths = make_dataset(self.dir_Alabel)
@@ -84,6 +86,7 @@ class UnalignedALabeledDataset(BaseDataset):
         self.A_size = len(self.A_paths)
         self.B_size = len(self.B_paths)
         self.transform = get_transform(opt)
+        self.label_transform = get_transform(opt, label=True)
 
     def __getitem__(self, index):
         A_path = self.A_paths[index % self.A_size]
@@ -100,14 +103,16 @@ class UnalignedALabeledDataset(BaseDataset):
         try:
             A_img = Image.fromarray(cv2.imread(A_path))
             B_img = Image.fromarray(cv2.imread(B_path))
-            A_label = Image.fromarray(cv2.imread(A_label_paths))
+            A_label = Image.fromarray(cv2.imread(A_label_paths, 0))
         except:
             print("Error in loading{}".format(B_img))
         A = self.transform(A_img)
         B = self.transform(B_img)
         #A_label
         #A_label = torch.Tensor(A_label.transpose(2, 0, 1)).mean(dim=0) / 255
-        A_label = self.transform(A_label).mean(dim=0) / 255
+        A_label = torch.squeeze(self.label_transform(A_label))
+
+        #print(A_label)
         #print(A_label.size())
         #import pdb; pdb.set_trace()
 
