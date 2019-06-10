@@ -50,7 +50,8 @@ def get_orig_size(dataset_name):
     try:
         return sizes[dataset_name]
     except:
-        raise Exception('Unknown dataset size:', dataset_name)
+        print("-------- Using 256 as size -------------")
+        return 256
 
 def get_transform2(dataset_name, net_transform, downscale):
     "Returns image and label transform to downscale, crop and prepare for net."
@@ -128,4 +129,9 @@ def get_fcn_dataset(name, rootdir, **kwargs):
         name = 'blk'
         rootdir = '/'.join(rootdir.split('/')[:-1]) + '/' + name
         kwargs['blk'] = False
-    return dataset_obj[name](rootdir, **kwargs)
+    try:
+        return dataset_obj[name](rootdir, **kwargs)
+    except:
+        print("Using Color dataset model")
+        kwargs['blk'] = False
+        return dataset_obj["blk"](rootdir, **kwargs)
