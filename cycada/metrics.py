@@ -42,6 +42,22 @@ def recall(preds, label):
 
     return ratio
 
+def precision(preds, label):
+    SMOOTH = 1e-6
+
+    max_vals , pred_label = torch.max(preds, dim=1)
+
+    pred_label = pred_label.long()
+    label = label.long()
+    
+    intersection = (pred_label & label).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
+    union = ((pred_label & label).byte() + (pred_label.byte() & (~label.byte()))).float().sum((1, 2))         # Will be zzero if both are 0
+    
+    precision = (intersection + SMOOTH) / (union + SMOOTH)  # We smooth our devision to avoid 0/0
+    precision = precision.mean()
+
+    return precision
+
 
 def fast_hist(a, b, n):
     k = (a >= 0) & (a < n)
