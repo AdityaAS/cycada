@@ -1,5 +1,6 @@
 import torch.utils.data
 from data.base_data_loader import BaseDataLoader
+from torch.utils.data.distributed import DistributedSampler
 
 
 def CreateDataLoader(opt):
@@ -44,11 +45,14 @@ class CustomDatasetDataLoader(BaseDataLoader):
     def initialize(self, opt):
         BaseDataLoader.initialize(self, opt)
         self.dataset = CreateDataset(opt)
+        # DataLoader
+        #sampler = DistributedSampler(self.dataset)
         self.dataloader = torch.utils.data.DataLoader(
             self.dataset,
             batch_size=opt.batchSize,
             shuffle=not opt.serial_batches,
-            num_workers=int(opt.nThreads))
+            num_workers=int(opt.nThreads),
+            )#sampler=sampler)
 
     def load_data(self):
         return self

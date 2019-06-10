@@ -125,4 +125,8 @@ def get_dataset(name, rootdir, dset, image_size, num_channels, download=True):
 
 
 def get_fcn_dataset(name, rootdir, **kwargs):
+    if name == 'color':
+        name = 'blk'
+        rootdir = '/'.join(rootdir.split('/')[:-1]) + '/' + name
+        kwargs['blk'] = False
     return dataset_obj[name](rootdir, **kwargs)

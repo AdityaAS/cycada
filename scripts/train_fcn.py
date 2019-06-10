@@ -282,4 +282,5 @@ if __name__ == '__main__':
     if exists(config_path):
         main(config_path)
     else :
+        print(p)
         print("Incorrect Path")

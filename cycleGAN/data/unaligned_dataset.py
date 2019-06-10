@@ -8,9 +8,13 @@ import random
 class UnalignedDataset(BaseDataset):
     def initialize(self, opt):
         self.opt = opt
-        self.root = opt.dataroot
-        self.dir_A = join(opt.dataroot, opt.phase + 'A')
-        self.dir_B = join(opt.dataroot, opt.phase + 'B')
+        # self.root = opt.dataroot
+        self.dir_A = join(opt.dataroot_A, opt.phase, "paired/images")
+        self.dir_B = join(opt.dataroot_B, opt.phase, "paired/images")
+
+        # self.dir_A = join(opt.dataroot, opt.phase + 'A')
+        # self.dir_B = join(opt.dataroot, opt.phase + 'B')
+
 
         self.A_paths = make_dataset(self.dir_A)
         self.B_paths = make_dataset(self.dir_B)

@@ -54,8 +54,7 @@ def mxAxis(tensor):
 
 @click.command()
 @click.option('--path', type=click.Path(exists=True))
-@click.option('--dataset', default='blk',
-              type=click.Choice(dataset_obj.keys()))
+@click.option('--dataset', default='blk')
 @click.option('--datadir', default='/home/users/aditya/data/', type=click.Path(exists=True))
 @click.option('--model', default='fcn8s', type=click.Choice(models.keys()))
 @click.option('--num_cls', default=2)

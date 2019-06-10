@@ -24,7 +24,8 @@ class BlkParams(DatasetParams):
 class Blk(Dataset):
 
     def __init__(self, root, num_cls=2, split='train', remap_labels=True, 
-            transform=None, target_transform=None, size=(256, 256)):
+            transform=None, target_transform=None, size=(256, 256), blk = True):
+        self.blk = blk
         self.root = root
         self.split = split
         self.remap_labels = remap_labels
@@ -63,12 +64,13 @@ class Blk(Dataset):
         img_path = self.img_path(index)
         label_path = self.label_path(index)
         #for loading bw images
-        img = cv2.imread(img_path, 0)
-        img_temp = np.expand_dims(img, axis = 2)
-        img = np.concatenate((img_temp, img_temp, img_temp), axis=2)
-        '''
-        img = cv2.imread(img_path)
-        '''
+        if self.blk:
+           img = cv2.imread(img_path, 0)
+           img_temp = np.expand_dims(img, axis = 2)
+           img = np.concatenate((img_temp, img_temp, img_temp), axis=2)
+        else:
+           img = cv2.imread(img_path)
+        
         target = cv2.imread(label_path)
         img = cv2.resize(img, self.size)
         target = cv2.resize(target, self.size)
