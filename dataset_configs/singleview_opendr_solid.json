@@ -3,5 +3,7 @@
 	"image_size" : 256,
 	"mean" : 0.5,
 	"num_cls" : 2, 
+	"fraction": 0.8,
+	"black": true,
 	"target_transform": null
 }

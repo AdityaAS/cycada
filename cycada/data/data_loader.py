@@ -105,10 +105,12 @@ class DatasetParams(object):
     std          = 0.3081
     num_cls      = 10
     target_transform = None
+    fraction = 1.0
+    black = False
 
     def __repr__(self):
-        return "num_channels: {}\nimage_size: {}\nmean: {}\nnum_cls:{}\n"\
-        .format(self.num_channels, self.image_size, self.mean, self.num_cls)
+        return "num_channels: {}\nimage_size: {}\nmean: {}\nnum_cls:{}\nfraction: {}\nblack: {}\n"\
+        .format(self.num_channels, self.image_size, self.mean, self.num_cls, self.fraction, self.black)
 
 def get_dataset(name, data_type, rootdir, dset, image_size, num_channels, download=True):
     is_train = (dset == 'train')
@@ -117,11 +119,11 @@ def get_dataset(name, data_type, rootdir, dset, image_size, num_channels, downlo
     transform = get_transform(params, image_size, num_channels)
     target_transform = get_target_transform(params)
     print(dataset_obj.keys())
-    return dataset_obj[data_type](name, rootdir, train=is_train, transform=transform,
+    return dataset_obj[data_type](name, rootdir, params, train=is_train, transform=transform,
             target_transform=target_transform, download=download)
 
 
 def get_fcn_dataset(name, data_type, rootdir, **kwargs):
     params = data_params[data_type](name)
-    print(params)
-    return dataset_obj[data_type](name, rootdir, **kwargs)
+    print("WHATS THE NAME", params)
+    return dataset_obj[data_type](name, rootdir, params, **kwargs)
