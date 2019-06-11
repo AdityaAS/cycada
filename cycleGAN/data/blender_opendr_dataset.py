@@ -19,6 +19,7 @@ class MnistSvhnDataset(BaseDataset):
         print(opt)
         self.mnist = MNIST(os.path.join(opt.dataroot, 'mnist'),
                            train=opt.isTrain, download=True)
+
         #svhn_mat_extra = scipy.io.loadmat(os.path.join(opt.dataroot,
         #                                               'svhn/extra_32x32.mat'))
         #svhn_mat_train = scipy.io.loadmat(os.path.join(opt.dataroot,
@@ -26,6 +27,7 @@ class MnistSvhnDataset(BaseDataset):
         #svhn_np = np.concatenate((np.array(svhn_mat_train['X']),
         #                          np.array(svhn_mat_extra['X'])),
         #                         axis=3)
+        
         svhn_np = np.array(svhn_mat_train['X'])
         self.svhn = np.transpose(svhn_np, (3, 0, 1, 2))
         self.svhn_label = np.array(svhn_mat_train['y'])

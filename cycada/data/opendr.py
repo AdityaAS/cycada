@@ -10,7 +10,8 @@ from cycada.data.data_loader import DatasetParams
 import cv2
 from cycada.data.util import convert_image_by_pixformat_normalize
 
-@register_data_params('singleview_opendr_solid')
+# @register_data_params('singleview_opendr_solid')
+@register_data_params('singleview_opendr_1tex_3bg')
 # @register_data_params('singleview_opendr_color_100k_copy')
 class OpenDRParams(DatasetParams):
     num_channels = 3
@@ -20,7 +21,8 @@ class OpenDRParams(DatasetParams):
     target_transform = None
 
 # @register_dataset_obj('singleview_opendr_color_100k_copy')
-@register_dataset_obj('singleview_opendr_solid')
+# @register_dataset_obj('singleview_opendr_solid')
+@register_dataset_obj('singleview_opendr_1tex_3bg')
 class OpenDR(Dataset):
 
     def __init__(self, root, num_cls=2, split='train', remap_labels=True, 
