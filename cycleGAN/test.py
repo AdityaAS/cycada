@@ -5,6 +5,15 @@ from models import create_model
 from util.visualizer import save_images
 from util import html
 
+def norm(tensor):
+    r = tensor.max() - tensor.min()
+    tensor = (tensor - tensor.min())/r
+    return tensor
+
+def mxAxis(tensor):
+    _, indices = torch.max(tensor, 0)
+    return indices
+
 
 if __name__ == '__main__':
     opt = TestOptions().parse()
@@ -21,11 +30,9 @@ if __name__ == '__main__':
     web_dir = os.path.join(opt.results_dir, opt.name, '%s_%s' % (opt.phase, opt.which_epoch))
     webpage = html.HTML(web_dir, 'Experiment = %s, Phase = %s, Epoch = %s' % (opt.name, opt.phase, opt.which_epoch))
     # test
+
     for i, data in enumerate(dataset):
-        if i < 3015:
-           continue
-#        if i >= opt.how_many:
-#            break
+
         model.set_input(data)
         model.test()
         visuals = model.get_current_visuals()
