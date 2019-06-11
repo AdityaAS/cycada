@@ -83,8 +83,7 @@ def main(path, dataset, datadir, model, num_cls):
         return
     iterations = tqdm(iter(loader))
     for i, (im, label) in enumerate(iterations):
-        if i != 31 and i != 379:
-           continue
+
         im = make_variable(im, requires_grad=False)
         label = make_variable(label, requires_grad=False)
         p = net(im)
@@ -94,7 +93,7 @@ def main(path, dataset, datadir, model, num_cls):
         rc = recall(p, label)
         pr, rc, fs, _ = sklearnScores(p, label)
 
-        if i == 31 or i == 379: #% int(len(iterations)/15) == 0:
+        if i% int(len(iterations)/15) == 0:
 
             im = Image.fromarray(np.uint8(norm(im[0]).permute(1, 2, 0).cpu().data.numpy()*255))
             label = Image.fromarray(np.uint8(label[0].cpu().data.numpy()*255))
