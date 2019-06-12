@@ -67,6 +67,7 @@ def main(path, dataset, datadir, model, num_cls):
     ds = get_fcn_dataset(dataset, data_type, os.path.join(datadir, dataset), split='test')
     classes = ds.num_cls
     collate_fn = torch.utils.data.dataloader.default_collate
+    
     loader = torch.utils.data.DataLoader(ds,  num_workers=8, batch_size=16, shuffle=False, pin_memory=True, collate_fn=collate_fn)
 
     intersections = np.zeros(num_cls)
@@ -74,6 +75,8 @@ def main(path, dataset, datadir, model, num_cls):
     
     ious = list()
     recalls = list()
+    precisions = list()
+    fscores = list()
 
     errs = []
     hist = np.zeros((num_cls, num_cls))
@@ -82,34 +85,43 @@ def main(path, dataset, datadir, model, num_cls):
         print('Empty data loader')
         return
     iterations = tqdm(iter(loader))
-    for im, label in iterations:
+    for i, (im, label) in enumerate(iterations):
+
         im = make_variable(im, requires_grad=False)
         label = make_variable(label, requires_grad=False)
         p = net(im)
         score = p
 
-        #val = im[0].permute(1, 2, 0).cpu().numpy()
-        #im = Image.fromarray(val)
-        #label = Image.fromarray(label[0].cpu().numpy())
-        #score = Image.fromarray(mxAxis(score[0]).cpu().numpy())
-
-        #im.save("img.png")
-        #label.save("img_lbl.png")
-        #score.save("img_sc.png")
-        
         iou = IoU(p, label)
         rc = recall(p, label)
+        pr, rc, fs, _ = sklearnScores(p, label)
+
+        if i% int(len(iterations)/15) == 0:
+
+            im = Image.fromarray(np.uint8(norm(im[0]).permute(1, 2, 0).cpu().data.numpy()*255))
+            label = Image.fromarray(np.uint8(label[0].cpu().data.numpy()*255))
+            score = Image.fromarray(np.uint8(mxAxis(score[0]).cpu().data.numpy()*255))
+            
+            im.save("img_" + str(i) + ".png")
+            label.save("img_lbl_" + str(i) + ".png")
+            score.save("img_sc_" + str(i) + ".png")
+        
 
         ious.append(iou.item())
-        recalls.append(rc.item())
+
+        recalls.append(rc)
+        precisions.append(pr)
+        fscores.append(fs)
 
         print("iou: ",np.mean(ious))
         print("recalls: ",np.mean(recalls))
+        print("precision: ",np.mean(precisions))
+        print("f1: ",np.mean(fscores))
 
         #print(','.join(num_cls))
     #print(fmt_array(iu))
     #print(np.nanmean(iu), fwIU, acc_overall, np.nanmean(acc_percls))
-  
+    print(np.argmax(ious), np.argmin(ious))  
 
 if __name__ == '__main__':
     main()
