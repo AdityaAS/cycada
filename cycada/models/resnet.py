@@ -207,7 +207,7 @@ def copy_parameter_from_resnet50(model, res50_dict):
 @register_model('resnet18')
 def resnet18(num_cls=2, pretrained=True,**kwargs):
     model = ResNet(Bottleneck, DeconvBottleneck, [2, 2, 2, 2], num_cls)
-    copy_parameter_from_resnet50(model, torchvision.models.resnet34(pretrained = True).state_dict())
+    copy_parameter_from_resnet50(model, torchvision.models.resnet18(pretrained = True).state_dict())
     return model
 
 
