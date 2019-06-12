@@ -43,6 +43,8 @@ outdir="${resdir}/${model}/lr${lr}_crop${crop}_ld${lambda_d}_lg${lambda_g}_momen
 
 mkdir -p $outdir
 
+targetSup=True
+
 # Run python script #
 python scripts/train_fcn_adda.py \
 	--output ${outdir} \
@@ -52,4 +54,4 @@ python scripts/train_fcn_adda.py \
     --model ${model} --weights_init=$base_model \
     --weights_shared --discrim_feat --no_lsgan \
     --max_iter ${max_iter} --crop_size ${crop} --batch ${batch} \
-    --snapshot ${snapshot} --num_cls ${num_cls}
+    --snapshot ${snapshot} --num_cls ${num_cls} --targetSup {targetSup}

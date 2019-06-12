@@ -37,6 +37,13 @@ from cycada.metrics import fast_hist
 from cycada.metrics import result_stats
 from cycada.metrics import IoU, recall
 from tqdm import tqdm
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--load', dest='load', type=str, default=False)
+parser.add_argument('--c', dest='config', type=str, default=False)
+args = parser.parse_args()
+
 
 def main(config_path):
     config = None
@@ -80,10 +87,12 @@ def main(config_path):
 
     # Get appropriate model based on config parameters
     net = get_model(config["model"], num_cls=config["num_cls"])
+    if args.load:
+        net.load_state_dict(torch.load(args.load))
+        print("============ Loading Model ===============")
 
     model_parameters = filter(lambda p: p.requires_grad, net.parameters())
     params = sum([np.prod(p.size()) for p in model_parameters])
-    net.cuda()
 
     dataset = config["dataset"] 
     num_workers = config["num_workers"]
@@ -110,10 +119,10 @@ def main(config_path):
                                             collate_fn=collate_fn,
                                             pin_memory=pin_memory)
 
-    val_loader = torch.utils.data.DataLoader(datasets_val, batch_size=config["batch_size"],
-                                            shuffle=True, num_workers=num_workers,
-                                            collate_fn=collate_fn,
-                                            pin_memory=pin_memory)
+    # val_loader = torch.utils.data.DataLoader(datasets_val, batch_size=config["batch_size"],
+    #                                         shuffle=True, num_workers=num_workers,
+    #                                         collate_fn=collate_fn,
+    #                                         pin_memory=pin_memory)
 
     test_loader = torch.utils.data.DataLoader(datasets_test, batch_size=config["batch_size"],
                                             shuffle=False, num_workers=num_workers,
@@ -184,6 +193,9 @@ def main(config_path):
                 iterator.set_description("TRAIN V: {} | Epoch: {}".format(config["version"], epoch))
                 iterator.refresh()
 
+            # clean before test/val
+            opt.zero_grad()
+
             # Train visualizations - per epoch
             vizz = preprocess_viz(im, preds, label)
             writer.add_scalar('trainepoch/loss', np.mean(data_metric['train']['losses']), global_step=epoch)
@@ -203,39 +215,40 @@ def main(config_path):
             for key in data_metric['train'].keys():
                 data_metric['train'][key] = list()
 
-            if epoch % config["val_epoch_interval"] == 0:
-                net.eval()
-                print("Val_epoch!")
-                iterator = tqdm(iter(val_loader))
-                for im, label in iterator:
-                    # load data/label
-                    im = make_variable(im, requires_grad=False)
-                    label = make_variable(label, requires_grad=False)
+            # if epoch % config["val_epoch_interval"] == 0:
+            #     net.eval()
+            #     print("Val_epoch!")
+            #     iterator = tqdm(iter(val_loader))
+            #     for im, label in iterator:
+            #         # load data/label
+            #         im = make_variable(im, requires_grad=False)
+            #         label = make_variable(label, requires_grad=False)
             
-                    # forward pass and compute loss
-                    preds = net(im)
-                    loss = supervised_loss(preds, label)
-                    iou = IoU(preds, label)
-                    rc = recall(preds, label)
+            #         # forward pass and compute loss
+            #         preds = net(im)
+            #         loss = supervised_loss(preds, label)
+            #         iou = IoU(preds, label)
+            #         rc = recall(preds, label)
 
-                    data_metric['val']['losses'].append(loss.item())
-                    data_metric['val']['ious'].append(iou.item())
-                    data_metric['val']['recalls'].append(rc.item())
+            #         data_metric['val']['losses'].append(loss.item())
+            #         data_metric['val']['ious'].append(iou.item())
+            #         data_metric['val']['recalls'].append(rc.item())
 
-                    iterator.set_description("VAL V: {} | Epoch: {}".format(config["version"], epoch))
-                    iterator.refresh()
+            #         iterator.set_description("VAL V: {} | Epoch: {}".format(config["version"], epoch))
+            #         iterator.refresh()
 
-                # Val visualizations
-                vizz = preprocess_viz(im, preds, label)
-                writer.add_scalar('valepoch/loss', np.mean(data_metric['val']['losses']), global_step=epoch)
-                writer.add_scalar('valepoch/IOU', np.mean(data_metric['val']['ious']), global_step=epoch)
-                writer.add_scalar('valepoch/Recall', np.mean(data_metric['val']['recalls']), global_step=epoch)
-                imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
-                writer.add_image('{}_image_data'.format('val'), imutil, global_step=epoch)
+            #     # Val visualizations
+            #     vizz = preprocess_viz(im, preds, label)
+            #     writer.add_scalar('valepoch/loss', np.mean(data_metric['val']['losses']), global_step=epoch)
+            #     writer.add_scalar('valepoch/IOU', np.mean(data_metric['val']['ious']), global_step=epoch)
+            #     writer.add_scalar('valepoch/Recall', np.mean(data_metric['val']['recalls']), global_step=epoch)
+            #     imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
+            #     writer.add_image('{}_image_data'.format('val'), imutil, global_step=epoch)
 
-                # Val epoch done. Free up lists
-                for key in data_metric['val'].keys():
-                    data_metric['val'][key] = list()
+            #     # Val epoch done. Free up lists
+            #     for key in data_metric['val'].keys():
+            #         data_metric['val'][key] = list()
+
             # Epoch Test
             if epoch % config["test_epoch_interval"] == 0:
                 net.eval()
@@ -276,7 +289,7 @@ def main(config_path):
 
 if __name__ == '__main__':
 
-    p = sys.argv[1]
+    p = args.config#sys.argv[1]
     config_path = join('./configs/fcn/', p)
 
     if exists(config_path):
