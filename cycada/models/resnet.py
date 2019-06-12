@@ -205,26 +205,26 @@ def copy_parameter_from_resnet50(model, res50_dict):
     print('copy state dict finished!')
 
 @register_model('resnet18')
-def resnet18(pretrained=True, classes = 2,**kwargs):
+def resnet18(num_cls=2, pretrained=True,**kwargs):
     model = ResNet(Bottleneck, DeconvBottleneck, [2, 2, 2, 2], classes)
     copy_parameter_from_resnet50(model, torchvision.models.resnet34(pretrained = True).state_dict())
     return model
 
 
 @register_model('resnet34')
-def resnet34(pretrained=True, classes=2,**kwargs):
+def resnet34(num_cls = 2, pretrained=True, **kwargs):
     model = ResNet(Bottleneck, DeconvBottleneck, [3, 4, 6, 3], classes)
     copy_parameter_from_resnet50(model, torchvision.models.resnet34(pretrained = True).state_dict())
     return model
 
 @register_model('resnet50')
-def resnet50(pretrained=True, classes=2, **kwargs):
+def resnet50(num_cls=2, pretrained=True, **kwargs):
     model = ResNet(Bottleneck, DeconvBottleneck, [3, 4, 6, 3], classes)
     copy_parameter_from_resnet50(model, torchvision.models.resnet50(pretrained = True).state_dict())
     return model
 
 @register_model('resnet101')
-def resnet101(pretrained=True, classes=2, **kwargs):
+def resnet101(num_cls=2, pretrained=True, classes=2, **kwargs):
     model = ResNet(Bottleneck, DeconvBottleneck, [3, 4, 23, 3], classes)
     copy_parameter_from_resnet50(model, torchvision.models.resnet101(pretrained = True).state_dict())
     return model
