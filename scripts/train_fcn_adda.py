@@ -127,11 +127,12 @@ def mxAxis(tensor):
 @click.option('--train_discrim_only', default=False)
 @click.option('--discrim_feat/--discrim_score', default=False)
 @click.option('--weights_shared/--weights_unshared', default=False)
+@click.option('--targetSup', default=False)
 
 def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weights, 
         weights_init, num_cls, lsgan, max_iter, lambda_d, lambda_g,
         train_discrim_only, weights_discrim, crop_size, weights_shared,
-        discrim_feat, half_crop, batch, model):
+        discrim_feat, half_crop, batch, model, targetSup):
     
     # So data is sampled in consistent way
     np.random.seed(1337)
@@ -350,24 +351,31 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
                 # extract features
                 if discrim_feat:
                     score_s, _ = net(im_s)
+                    score_t, _ = net(im_t)
                 else:
                     score_s = net(im_s)
+                    score_t = net(im_t)
 
-                loss_supervised_s = supervised_loss(score_s, label_s, 
-                        weights=weights)
-                loss_supervised_s.backward()
+                loss_supervised_s = supervised_loss(score_s, label_s, weights=weights)
+                loss_supervised_t = supervised_loss(score_t label_t, weights=weights)
+                loss_supervised = loss_supervised_s
+
+                if targetSup:
+                    loss_supervised += loss_supervised_t
+
+                loss_supervised.backward()
+
                 losses_super_s.append(loss_supervised_s.item())
                 info_str += ' clsS:{:.2f}'.format(np.mean(losses_super_s))
                 writer.add_scalar('loss/supervised/source', np.mean(losses_super_s), iteration)
 
+                losses_super_t.append(loss_supervised_t.item())
+                info_str += ' clsT:{:.2f}'.format(np.mean(losses_super_t))
+                writer.add_scalar('loss/supervised/target', np.mean(losses_super_t), iteration)
+
                 # optimize target net
                 opt_rep.step()
 
-            # compute supervised losses for target -- monitoring only!!!
-            loss_supervised_t = supervised_loss(score_t, label_t, weights=weights)
-            losses_super_t.append(loss_supervised_t.item())
-            info_str += ' clsT:{:.2f}'.format(np.mean(losses_super_t))
-            writer.add_scalar('loss/supervised/target', np.mean(losses_super_t), iteration)
 
 
             ###########################

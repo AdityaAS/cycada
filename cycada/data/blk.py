@@ -10,6 +10,20 @@ from cycada.data.data_loader import DatasetParams
 import cv2
 from cycada.data.util import convert_image_by_pixformat_normalize
 
+def Sqr(img):
+
+    mx = max(img.shape[0], img.shape[1])
+    img2 = np.zeros((mx, mx, 3))
+    try:
+        img2[int((mx - img.shape[0])/2):mx-int((mx - img.shape[0])/2), int((mx - img.shape[1])/2):mx - int((mx - img.shape[1])/2) ,:] = img
+    except:
+        try:
+            img2[int((mx - img.shape[0])/2):mx-int((mx - img.shape[0])/2), int((mx - img.shape[1])/2):-1 -int((mx - img.shape[1])/2) ,:] = img
+        except:
+            img2[int((mx - img.shape[0])/2):mx - 1-int((mx - img.shape[0])/2), int((mx - img.shape[1])/2):mx - int((mx - img.shape[1])/2) ,:] = img
+
+    return img2
+
 @register_data_params('blk')
 # @register_data_params('singleview_opendr_color_100k_copy')
 class BlkParams(DatasetParams):
@@ -72,6 +86,12 @@ class Blk(Dataset):
            img = cv2.imread(img_path)
         
         target = cv2.imread(label_path)
+        # import pdb;pdb.set_trace()
+
+        if img.shape[0] != img.shape[1]:
+            img = Sqr(img)
+            target = Sqr(target)
+
         img = cv2.resize(img, self.size)
         target = cv2.resize(target, self.size)
         # Convert to NCHW format and normalize to -1 to 1

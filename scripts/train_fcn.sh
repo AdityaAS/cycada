@@ -3,8 +3,8 @@ data="surreal_sml"
 datadir='/scratch/users/aditya/'
 model=fcn8s
 
-crop=240
-batch=2
+crop=256
+batch=16
 iterations=10000
 lr=1e-3
 momentum=0.99

@@ -100,7 +100,7 @@ def main(path, dataset, datadir, model, num_cls):
             score = Image.fromarray(np.uint8(mxAxis(score[0]).cpu().data.numpy()*255))
             
             im.save("img_" + str(i) + ".png")
-            label.save("img_lbl_" + str(i) + ".png")
+            # label.save("img_lbl_" + str(i) + ".png")
             score.save("img_sc_" + str(i) + ".png")
         
 

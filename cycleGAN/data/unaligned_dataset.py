@@ -3,7 +3,22 @@ from data.base_dataset import BaseDataset, get_transform
 from data.image_folder import make_dataset
 from PIL import Image
 import random
+import cv2
+import numpy as np
 
+def Sqr(img):
+
+    mx = max(img.shape[0], img.shape[1])
+    img2 = np.zeros((mx, mx, 3))
+    try:
+        img2[int((mx - img.shape[0])/2):mx-int((mx - img.shape[0])/2), int((mx - img.shape[1])/2):mx - int((mx - img.shape[1])/2) ,:] = img
+    except:
+        try:
+            img2[int((mx - img.shape[0])/2):mx-int((mx - img.shape[0])/2), int((mx - img.shape[1])/2):-1 -int((mx - img.shape[1])/2) ,:] = img
+        except:
+            img2[int((mx - img.shape[0])/2):mx - 1-int((mx - img.shape[0])/2), int((mx - img.shape[1])/2):mx - int((mx - img.shape[1])/2) ,:] = img
+
+    return img2
 
 class UnalignedDataset(BaseDataset):
     def initialize(self, opt):
@@ -32,12 +47,24 @@ class UnalignedDataset(BaseDataset):
         else:
             index_B = random.randint(0, self.B_size - 1)
         B_path = self.B_paths[index_B]
-        # print('(A, B) = (%d, %d)' % (index_A, index_B))
-        A_img = Image.open(A_path).convert('RGB')
-        B_img = Image.open(B_path).convert('RGB')
+
+        # A_img = Image.open(A_path).convert('RGB')
+        # B_img = Image.open(B_path).convert('RGB')
+
+        A_img = cv2.imread(A_path)
+        B_img = cv2.imread(B_path)
+
+        if A_img.shape[0] != A_img.shape[1]:
+            A_img = Sqr(A_img)
+            B_img = Sqr(B_img)
+
+        A_img = Image.fromarray(np.uint8(A_img))
+        B_img = Image.fromarray(np.uint8(B_img))
+
 
         A = self.transform(A_img)
         B = self.transform(B_img)
+
         if self.opt.which_direction == 'BtoA':
             input_nc = self.opt.output_nc
             output_nc = self.opt.input_nc

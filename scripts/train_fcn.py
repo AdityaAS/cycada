@@ -132,7 +132,7 @@ def main(config_path):
     hist = np.zeros((num_cls, num_cls))
     iteration = 0
     
-    for epoch in range(config["num_epochs"]):
+    for epoch in range(config["num_epochs"]+1):
         if config["phase"] == 'train':
             net.train()
             iterator = tqdm(iter(train_loader))
