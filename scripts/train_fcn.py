@@ -90,9 +90,9 @@ def main(config_path):
     pin_memory = config["pin_memory"]
     dataset = dataset[0]
 
-    datasets_train = get_dataset(config["dataset"], join(config["datadir"], config["dataset"]), split='train')
-    datasets_val = get_dataset(config["dataset"], join(config["datadir"], config["dataset"]), split='val')
-    datasets_test = get_dataset(config["dataset"], join(config["datadir"], config["dataset"]), split='test')
+    datasets_train = get_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='train')
+    datasets_val = get_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='val')
+    datasets_test = get_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='test')
 
     if config["weights"] is not None:
         weights = np.loadtxt(config["weights"])
@@ -197,7 +197,7 @@ def main(config_path):
             print("recall :{}".format(np.mean(data_metric['train']['recalls'])))
 
             if epoch % config["checkpoint_interval"] == 0:
-                torch.save(net.state_dict(), join(checkpointdir, 'iter{}.pth'.format(epoch)))	
+                torch.save(net.state_dict(), join(checkpointdir, 'iter{}.pth'.format(epoch)))   
 
             # Train epoch done. Free up lists
             for key in data_metric['train'].keys():

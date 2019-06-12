@@ -24,7 +24,7 @@ from cycada.data.usps import USPS
 from cycada.data.color2blk import Color2Blk
 from cycada.data.blk import Blk
 
-from cycada.metrics import IoU, recall, sklearnScores
+from cycada.metrics import IoU, recall
 
 def fmt_array(arr, fmt=','):
     strs = ['{:.3f}'.format(x) for x in arr]
@@ -49,11 +49,13 @@ def norm(tensor):
 
 def mxAxis(tensor):
     _, indices = torch.max(tensor, 0)
+    import pdb;pdb.set_trace()
     return indices
 
 @click.command()
 @click.option('--path', type=click.Path(exists=True))
 @click.option('--dataset', default='blk')
+@click.option('--data_type', default='opendr')
 @click.option('--datadir', default='/home/users/aditya/data/', type=click.Path(exists=True))
 @click.option('--model', default='fcn8s', type=click.Choice(models.keys()))
 @click.option('--num_cls', default=2)
@@ -62,9 +64,10 @@ def main(path, dataset, datadir, model, num_cls):
     net = get_model(model, num_cls=num_cls)
     net.load_state_dict(torch.load(path))
     net.eval()
-    ds = get_fcn_dataset(dataset, os.path.join(datadir, dataset), split='test')
+    ds = get_fcn_dataset(dataset, data_type, os.path.join(datadir, dataset), split='test')
     classes = ds.num_cls
     collate_fn = torch.utils.data.dataloader.default_collate
+    
     loader = torch.utils.data.DataLoader(ds,  num_workers=8, batch_size=16, shuffle=False, pin_memory=True, collate_fn=collate_fn)
 
     intersections = np.zeros(num_cls)
