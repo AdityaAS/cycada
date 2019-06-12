@@ -1,50 +1,70 @@
 import numpy as np
 import scipy.io
 import torch
+import os
 from torch.utils.data import Dataset
 from glob import glob
 from os.path import join, exists
-
+import json
 from cycada.data.data_loader import register_data_params, register_dataset_obj
 from cycada.data.data_loader import DatasetParams
 import cv2
 from cycada.data.util import convert_image_by_pixformat_normalize
 
-# @register_data_params('singleview_opendr_solid')
-@register_data_params('singleview_opendr_1tex_3bg')
-# @register_data_params('singleview_opendr_color_100k_copy')
+
+@register_data_params('opendr')
 class OpenDRParams(DatasetParams):
     num_channels = 3
     image_size = 256
     mean = 0.5
     num_cls = 2
+    fraction = 1.0
     target_transform = None
+    black = False
 
-# @register_dataset_obj('singleview_opendr_color_100k_copy')
-# @register_dataset_obj('singleview_opendr_solid')
-@register_dataset_obj('singleview_opendr_1tex_3bg')
+    def __init__(self, name):
+        config = None
+        print("PARAM: {}".format(os.getcwd()))
+        with open(join("dataset_configs", name+".json"), 'r') as f:
+            config = json.load(f)
+        self.num_channels = config["num_channels"]
+        self.image_size = config["image_size"]
+        self.mean = config["mean"]
+        self.num_cls = config["num_cls"]
+        self.fraction = config["fraction"]
+        self.target_transform = config["target_transform"]
+        self.black = config["black"]
+
+@register_dataset_obj('opendr')
 class OpenDR(Dataset):
 
-    def __init__(self, root, num_cls=2, split='train', remap_labels=True, 
-            transform=None, target_transform=None, size=(256, 256)):
+    def __init__(self, name, root, params, num_cls=2, split='train', remap_labels=True, 
+            transform=None, target_transform=None):
         self.root = root
         self.split = split
         self.remap_labels = remap_labels
-        self.name = "singleview_opendr_solid"
+        self.name = name
         self.transform = transform
         self.images = []
         self.segmasks = []
         self.target_transform = target_transform
         self.im_path = join(self.root, self.split, 'paired', 'images')
         self.seg_path = join(self.root, self.split, 'paired', 'segmasks')
-        self.collect_ids()
         self.num_cls = num_cls
-        self.size = size
+        self.size = (params.image_size, params.image_size)
+        self.bw_flag = params.black
+        self.seed = 255
+        self.fraction = params.fraction if (self.split == 'train') else 1.0
+        self.collect_ids()
+        
 
     def collect_ids(self):
-        self.images = sorted(glob(join(self.im_path, '*')))
-        print(len(self.images))
-        self.segmasks = sorted(glob(join(self.seg_path, '*')))
+        self.images = glob(join(self.im_path, '*'))
+        self.segmasks = glob(join(self.seg_path, '*'))
+        np.random.seed(self.seed)
+        self.images = sorted(np.random.choice(self.images, int(self.fraction * len(self.images))))
+        np.random.seed(self.seed)
+        self.segmasks = sorted(np.random.choice(self.segmasks, int(self.fraction * len(self.segmasks))))
 
     def img_path(self, index):
         return self.images[index]
@@ -64,13 +84,15 @@ class OpenDR(Dataset):
     def __getitem__(self, index):
         img_path = self.img_path(index)
         label_path = self.label_path(index)
-        #for loading bw images
-        img = cv2.imread(img_path, 0)
-        img_temp = np.expand_dims(img, axis = 2)
-        img = np.concatenate((img_temp, img_temp, img_temp), axis=2)
-        '''
-        img = cv2.imread(img_path)
-        '''
+
+        img = None
+        if self.bw_flag:
+            img = cv2.imread(img_path, 0)
+            img_temp = np.expand_dims(img, axis = 2)
+            img = np.concatenate((img_temp, img_temp, img_temp), axis=2)
+        else:
+            img = cv2.imread(img_path)
+
         target = cv2.imread(label_path)
         img = cv2.resize(img, self.size)
         target = cv2.resize(target, self.size)
