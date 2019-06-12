@@ -53,11 +53,9 @@ class VGG16_FCN8s(nn.Module):
             std=[0.229, 0.224, 0.225]),
         ])
 
-    def __init__(self, num_cls=19, pretrained=True, weights_init=None, 
-            output_last_ft=False, finetune=None):
-        super().__init__()
+
         self.output_last_ft = output_last_ft
-        self.vgg = make_layers(vgg.cfgs['D'])
+        self.vgg = make_layers(vgg.cfg['D'])
         self.vgg_head = nn.Sequential(
             nn.Conv2d(512, 4096, 7),
             nn.ReLU(inplace=True),
