@@ -9,8 +9,10 @@ class BaseOptions():
         self.initialized = False
 
     def initialize(self):
+        self.parser.add_argument('--dataroot_B', required=True, help='path to images (should have subfolders trainA, trainB, valA, valB, etc)')
+        self.parser.add_argument('--dataroot_A', required=True, help='path to images (should have subfolders trainA, trainB, valA, valB, etc)')
         self.parser.add_argument('--dataroot', required=True, help='path to images (should have subfolders trainA, trainB, valA, valB, etc)')
-        self.parser.add_argument('--batchSize', type=int, default=1, help='input batch size')
+        self.parser.add_argument('--batchSize', type=int, default=16, help='input batch size')
         self.parser.add_argument('--loadSize', type=int, default=286, help='scale images to this size')
         self.parser.add_argument('--fineSize', type=int, default=256, help='then crop to this size')
         self.parser.add_argument('--input_nc', type=int, default=3, help='# of input image channels')
@@ -35,7 +37,7 @@ class BaseOptions():
         self.parser.add_argument('--display_winsize', type=int, default=256, help='display window size')
         self.parser.add_argument('--display_id', type=int, default=0, help='window id of the web display')
         self.parser.add_argument('--display_server', type=str, default="http://localhost", help='visdom server of the web display')
-        self.parser.add_argument('--display_port', type=int, default=8097, help='visdom port of the web display')
+        self.parser.add_argument('--display_port', type=int, default=9999, help='visdom port of the web display')
         self.parser.add_argument('--no_dropout', action='store_true', help='no dropout for the generator')
         self.parser.add_argument('--max_dataset_size', type=int, default=float("inf"),
                                  help='Maximum number of samples allowed per dataset. If the dataset directory contains more than max_dataset_size, only a subset is loaded.')
