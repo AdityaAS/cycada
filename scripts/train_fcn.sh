@@ -1,7 +1,6 @@
 gpu=0
-data="singleview_opendr_solid"
-datadir='/efs/data/HMR_baby/datasets/'
-data2=opendr
+data="surreal_sml"
+datadir='/scratch/users/aditya/'
 model=fcn8s
 
 crop=240
@@ -11,14 +10,12 @@ lr=1e-3
 momentum=0.99
 num_cls=2
 
-#outdir=results/${data}-${data2}/${model}
-
 outdir=results/${data}/${data}_${model}
 mkdir -p results/${data} 
 
 phase='train' 
 
-CUDA_LAUNCH_BLOCKING=1 python -m pdb scripts/train_fcn.py ${outdir} --phase ${phase} \
+CUDA_VISIBLE_DEVICES=$1 python scripts/train_fcn.py ${outdir} --phase ${phase} \
 	--model ${model} \
     --num_cls ${num_cls} --gpu ${gpu} \
     --lr ${lr} -b ${batch} -m ${momentum} \

@@ -100,6 +100,9 @@ def norm(tensor):
     tensor = (tensor - tensor.min())/r
     return tensor
 
+def mxAxis(tensor):
+    _, indices = tensor.max(0)
+    return indices
 
 @click.command()
 @click.option('--output', required=True, type=click.Path(exists=True))
@@ -399,13 +402,12 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
                 logging.info(info_str)
                 print(info_str)
 
-                # score_s, score_t, im_s, im_t, label_s, label_t
                 im_s = Image.fromarray(np.uint8(norm(im_s[0]).permute(1, 2, 0).cpu().data.numpy()*255))
                 im_t = Image.fromarray(np.uint8(norm(im_t[0]).permute(1, 2, 0).cpu().data.numpy()*255))
                 label_s = Image.fromarray(np.uint8(label_s[0].cpu().data.numpy()*255))
-                score_s = Image.fromarray(np.uint8(score_s[0, 0].cpu().data.numpy()*255))
                 label_t = Image.fromarray(np.uint8(label_t[0].cpu().data.numpy()*255))
-                score_t = Image.fromarray(np.uint8(score_t[0, 0].cpu().data.numpy()*255))
+                score_s = Image.fromarray(np.uint8(mxAxis(score_s[0]).cpu().data.numpy()*255))
+                score_t = Image.fromarray(np.uint8(mxAxis(score_t[0]).cpu().data.numpy()*255))
 
                 im_s.save(output + "/im_s.png")
                 im_t.save(output + "/im_t.png")

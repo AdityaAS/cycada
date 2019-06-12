@@ -41,11 +41,16 @@ from tqdm import tqdm
 
 def main(config_path):
     config = None
+    
+    config_file = config_path.split('/')[-1]
+    version = config_file.split('.')[0][1:]
+
     with open(config_path, 'r') as f:
         config = json.load(f)
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = config["gpu"]
 
+    os.environ['CUDA_VISIBLE_DEVICES'] = config["gpu"]
+    config["version"] = version
     config_logging()
     
     # Initialize SummaryWriter - For tensorboard visualizations
@@ -54,19 +59,25 @@ def main(config_path):
 
     checkpointdir = join('runs', config["model"], config["dataset"], 'v{}'.format(config["version"]), 'checkpoints')
 
-
     print("Logging directory: {}".format(logdir))
     print("Checkpoint directory: {}".format(checkpointdir))
 
-    # join(config["output"], config["dataset"], config["dataset"] + '_' + config["model"], 
-    #                 'v{}'.format(config["version"]))
+    versionpath = join('runs', config["model"], config["dataset"], 'v{}'.format(config["version"]))
 
-    for path in [checkpointdir, logdir]:
-        if not exists(path):
-            os.makedirs(path)
-        elif not config["fine_tune"]:
-            shutil.rmtree(path)
-            os.makedirs(path)
+    if not exists(versionpath):
+        os.makedirs(versionpath)
+        os.makedirs(checkpointdir)
+        os.makedirs(logdir)
+    elif exists(versionpath) and config["force"]:
+        shutil.rmtree(versionpath)
+        os.makedirs(versionpath)
+        os.makedirs(checkpointdir)
+        os.makedirs(logdir)
+    else:
+        print("Version {} already exists! Please run with different version number".format(config["version"]))
+        logging.info("Version {} already exists! Please run with different version number".format(config["version"]))
+        sys.exit(-1)
+
 
     writer = SummaryWriter(logdir)
 
@@ -246,8 +257,11 @@ def main(config_path):
     logging.info('Optimization complete.')
 
 if __name__ == '__main__':
+
     p = sys.argv[1]
-    if exists(p):
-        main(sys.argv[1])
+    config_path = join('./configs/fcn/', p)
+
+    if exists(config_path):
+        main(config_path)
     else :
         print("Incorrect Path")

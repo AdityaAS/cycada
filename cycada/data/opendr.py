@@ -11,8 +11,8 @@ from cycada.data.data_loader import DatasetParams
 import cv2
 from cycada.data.util import convert_image_by_pixformat_normalize
 
+
 @register_data_params('opendr')
-# @register_data_params('singleview_opendr_color_100k_copy')
 class OpenDRParams(DatasetParams):
     num_channels = 3
     image_size = 256
@@ -35,7 +35,6 @@ class OpenDRParams(DatasetParams):
         self.target_transform = config["target_transform"]
         self.black = config["black"]
 
-# @register_dataset_obj('singleview_opendr_color_100k_copy')
 @register_dataset_obj('opendr')
 class OpenDR(Dataset):
 
