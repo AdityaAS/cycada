@@ -82,8 +82,6 @@ def main(config_path):
     net = get_model(config["model"], num_cls=config["num_cls"])
 
     model_parameters = filter(lambda p: p.requires_grad, net.parameters())
-    params = sum([np.prod(p.size()) for p in model_parameters])
-    net.cuda()
 
     dataset = config["dataset"] 
     num_workers = config["num_workers"]
@@ -91,7 +89,7 @@ def main(config_path):
     dataset = dataset[0]
 
     datasets_train = get_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='train')
-    datasets_val = get_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='val')
+    datasets_val = get_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='test')
     datasets_test = get_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='test')
 
     if config["weights"] is not None:
@@ -278,6 +276,7 @@ if __name__ == '__main__':
 
     p = sys.argv[1]
     config_path = join('./configs/fcn/', p)
+    print(config_path)
 
     if exists(config_path):
         main(config_path)
