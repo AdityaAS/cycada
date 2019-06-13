@@ -2,10 +2,23 @@ import os.path
 from data.base_dataset import BaseDataset, get_transform
 from data.image_folder import make_dataset
 from PIL import Image
+import numpy as np
 import torch
 import random
 import cv2
+import sys
 
+def tensor2im(input_image, imtype=np.uint8):
+    if isinstance(input_image, torch.Tensor):
+        image_tensor = input_image.data
+    else:
+        return input_image
+    image_numpy = image_tensor.cpu().float().numpy()
+    if image_numpy.shape[0] == 1:
+        image_numpy = np.tile(image_numpy, (3, 1, 1))
+    print(image_numpy.shape)
+    image_numpy = (np.transpose(image_numpy, (1, 2, 0)) + 1) / 2.0 * 255.0
+    return image_numpy.astype(imtype)
 
 class UnalignedDataset(BaseDataset):
     def initialize(self, opt):
@@ -82,7 +95,7 @@ class UnalignedALabeledDataset(BaseDataset):
 
         self.A_paths = sorted(self.A_paths)
         self.B_paths = sorted(self.B_paths)
-        self.A_label_paths = sorted(self.A_paths)
+        self.A_label_paths = sorted(self.A_label_paths)
         self.A_size = len(self.A_paths)
         self.B_size = len(self.B_paths)
         self.transform = get_transform(opt)
@@ -108,9 +121,21 @@ class UnalignedALabeledDataset(BaseDataset):
             print("Error in loading{}".format(B_img))
         A = self.transform(A_img)
         B = self.transform(B_img)
-        #A_label
+        #print(A.cpu().numpy().transpose(1, 2, 0).shape)
+        #ima = Image.fromarray(tensor2im(A))
+        #print("IMG DONE",ima.shape)
+        #ima.save("test_img1.png")
+        #cv2.imwrite("test_img.png",ima)
         #A_label = torch.Tensor(A_label.transpose(2, 0, 1)).mean(dim=0) / 255
         A_label = torch.squeeze(self.label_transform(A_label))
+        #print(A_label.size())
+        #imlA = Image.fromarray(tensor2im(A_label))
+        #print("IMG LABEL DONE",imlA.shape)
+        #imlA.save("test_img_labl1.png")
+        #cv2.imwrite("test_label_img.png",imlA)
+        #print("DONE")
+        #sys.exit()
+        #print(A_label)
 
         #print(A_label)
         #print(A_label.size())

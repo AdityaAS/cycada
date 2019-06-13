@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from sklearn.metrics import precision_recall_fscore_support as score
 
 def seg_accuracy(score, label, num_cls):
     _, preds = torch.max(score.data, 1)
@@ -41,6 +42,35 @@ def recall(preds, label):
     ratio = ratio.mean()
 
     return ratio
+
+
+def precision(preds, label):
+    SMOOTH = 1e-6
+
+    max_vals , pred_label = torch.max(preds, dim=1)
+
+    pred_label = pred_label.long()
+    label = label.long()
+    
+    intersection = (pred_label & label).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
+    union = ((pred_label & label).byte() + (pred_label.byte() & (~label.byte()))).float().sum((1, 2))         # Will be zzero if both are 0
+    
+    precision = (intersection + SMOOTH) / (union + SMOOTH)  # We smooth our devision to avoid 0/0
+    precision = precision.mean()
+
+    return precision
+
+def sklearnScores(preds, label):
+
+    max_vals , pred_label = torch.max(preds, dim=1)
+
+    pred_label = pred_label.view(-1, 1).long().cpu().data.numpy()
+    label = label.view(-1, 1).long().cpu().data.numpy()
+
+    precision, recall, fscore, support = score(label, pred_label)
+
+    return precision, recall, fscore, support
+
 
 
 def fast_hist(a, b, n):

@@ -19,16 +19,10 @@ def load_data(name, dset, batch=64, rootdir='', num_channels=3,
                 image_size, num_channels, download=download)
         tgt_dataset = get_dataset(name[1], join(rootdir, name[1]), dset, 
                 image_size, num_channels, download=download)
-        if src_dataset is None:
-            print("Data is not loaded, folder missing {}".format(name[0]))
-        if tgt_dataset is None:
-            print("Data is not loaded, folder missing {}".format(name[1]))
         dataset = AddaDataset(src_dataset, tgt_dataset)
     else:
         dataset = get_dataset(name, rootdir, dset, image_size, num_channels,
                 download=download)
-        if dataset is None:
-            print("Data is not loaded, folder missing {}".format(name))
     if len(dataset) == 0:
         return None
     loader = torch.utils.data.DataLoader(dataset, batch_size=batch, 
@@ -43,14 +37,16 @@ def get_transform_dataset(dataset_name, rootdir, net_transform, downscale):
 
 sizes = {'cityscapes': 1024, 'gta5': 1024, 'cyclegta5': 1024,\
         'singleview_opendr_solid': 256, 'singleview_blender_100k_visibility': 224,\
-        'singleview_opendr_color_100k_copy': 480, 'blk': 256, 'color2blk': 256}
+        'singleview_opendr_color_100k_copy': 480, 'blk': 256, 'color2blk': 256, \
+        'singleview_opendr_1tex_3bg': 480, 'surreal_sml': 256}
 
 def get_orig_size(dataset_name):
     "Size of images in the dataset for relative scaling."
     try:
         return sizes[dataset_name]
     except:
-        raise Exception('Unknown dataset size:', dataset_name)
+        print("-------- Using 256 as size -------------")
+        return 256
 
 def get_transform2(dataset_name, net_transform, downscale):
     "Returns image and label transform to downscale, crop and prepare for net."
@@ -88,17 +84,17 @@ class AddaDataset(data.Dataset):
         return min(len(self.src), len(self.tgt))
 
 data_params = {}
-def register_data_params(name):
+def register_data_params(data_type):
     def decorator(cls):
-        data_params[name] = cls
+        data_params[data_type] = cls
         return cls
     return decorator
 
 
 dataset_obj = {}
-def register_dataset_obj(name):
+def register_dataset_obj(data_type):
     def decorator(cls):
-        dataset_obj[name] = cls
+        dataset_obj[data_type] = cls
         return cls
     return decorator
 
@@ -111,17 +107,26 @@ class DatasetParams(object):
     std          = 0.3081
     num_cls      = 10
     target_transform = None
+    fraction = 1.0
+    black = False
 
-def get_dataset(name, rootdir, dset, image_size, num_channels, download=True):
+    def __repr__(self):
+        return "num_channels: {}\nimage_size: {}\nmean: {}\nnum_cls:{}\nfraction: {}\nblack: {}\n"\
+        .format(self.num_channels, self.image_size, self.mean, self.num_cls, self.fraction, self.black)
+
+def get_dataset(name, data_type, rootdir, dset, image_size, num_channels, download=True):
     is_train = (dset == 'train')
     print('get dataset:', name, rootdir, dset)
-    params = data_params[name] 
+    params = data_params[data_type](name) 
     transform = get_transform(params, image_size, num_channels)
     target_transform = get_target_transform(params)
     print(dataset_obj.keys())
-    return dataset_obj[name](rootdir, train=is_train, transform=transform,
+    return dataset_obj[data_type](name, rootdir, params, train=is_train, transform=transform,
             target_transform=target_transform, download=download)
 
 
-def get_fcn_dataset(name, rootdir, **kwargs):
-    return dataset_obj[name](rootdir, **kwargs)
+
+def get_fcn_dataset(name, data_type, rootdir, **kwargs):
+    params = data_params[data_type](name)
+    print("WHATS THE NAME", params)
+    return dataset_obj[data_type](name, rootdir, params, **kwargs)

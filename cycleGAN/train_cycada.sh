@@ -1,4 +1,4 @@
-CUDA_VISIBLE_DEVICES=6 python -m pdb train.py --name  solid_2_tex_vtemp \
+CUDA_VISIBLE_DEVICES=7 python train.py --name  tex_2_solid_vtemp \
    	--resize_or_crop='resize_and_crop' \
     --loadSize=256 --fineSize=256 --which_model_netD n_layers --n_layers_D 3 \
     --which_model_netG 'unet_256' \
@@ -6,7 +6,7 @@ CUDA_VISIBLE_DEVICES=6 python -m pdb train.py --name  solid_2_tex_vtemp \
     --lambda_A 1 --lambda_B 1 --lambda_identity 0 \
     --display_id 1 --which_model_netM 'fcn8s'\
     --no_flip --batchSize 4 \
-    --dataset_mode unaligned_A_labeled --dataroot_A /scratch/users/aditya/data/singleview_opendr_solid/train/paired \
-    --dataroot_B /scratch/users/aditya/data/singleview_opendr_texture/train/paired \
+    --dataset_mode unaligned_A_labeled --dataroot_A /scratch/users/aditya/data/singleview_opendr_real_ratio/train/paired \
+    --dataroot_B /scratch/users/aditya/data/singleview_opendr_solid/train/paired \
     --dataroot /scratch/users/aditya/data/singleview_opendr_solid \
     --which_direction AtoB --no_html --nThreads 16 --Mmodel_path /scratch/data/readwrite/aditya_cycada_data/checkpoints_all/cycada/runs/fcn8s/singleview_opendr_solid/color/checkpoints/iter49.pth
