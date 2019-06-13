@@ -12,8 +12,6 @@ import sys
 import cv2
 
 
-
-
 mode = sys.argv[1]#'train'
 
 def info2beta(infofile, video):
@@ -29,8 +27,6 @@ def info2beta(infofile, video):
             continue
         if v.max() == 0:
            continue
-
-
 
         v = np.minimum(v*1000, 255*np.ones(v.shape))
         im = np.zeros((v.shape[0], v.shape[1], 3))

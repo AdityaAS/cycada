@@ -23,7 +23,7 @@ from torch.autograd import Variable
 print(os.getcwd())
 
 import shutil
-from cycada.data.data_loader import get_fcn_dataset as get_dataset
+from cycada.data.data_loader import get_fcn_dataset as get_fcn_dataset
 from cycada.models import get_model
 from cycada.models.models import models
 from cycada.transforms import augment_collate
@@ -76,8 +76,6 @@ def main(config_path):
         sys.exit(-1)
 
     writer = SummaryWriter(logdir)
-
-
     # Get appropriate model based on config parameters
     net = get_model(config["model"], num_cls=config["num_cls"])
 
@@ -90,9 +88,9 @@ def main(config_path):
     pin_memory = config["pin_memory"]
     dataset = dataset[0]
 
-    datasets_train = get_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='train')
-    datasets_val = get_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='val')
-    datasets_test = get_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='test')
+    datasets_train = get_fcn_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='train')
+    datasets_val = get_fcn_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='val')
+    datasets_test = get_fcn_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='test')
 
     if config["weights"] is not None:
         weights = np.loadtxt(config["weights"])
