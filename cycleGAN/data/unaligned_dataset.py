@@ -16,7 +16,7 @@ def tensor2im(input_image, imtype=np.uint8):
     image_numpy = image_tensor.cpu().float().numpy()
     if image_numpy.shape[0] == 1:
         image_numpy = np.tile(image_numpy, (3, 1, 1))
-    print(image_numpy.shape)
+    #print(image_numpy.shape)
     image_numpy = (np.transpose(image_numpy, (1, 2, 0)) + 1) / 2.0 * 255.0
     return image_numpy.astype(imtype)
 
@@ -122,16 +122,17 @@ class UnalignedALabeledDataset(BaseDataset):
         A = self.transform(A_img)
         B = self.transform(B_img)
         #print(A.cpu().numpy().transpose(1, 2, 0).shape)
+        #import pdb; pdb.set_trace()
         #ima = Image.fromarray(tensor2im(A))
         #print("IMG DONE",ima.shape)
-        #ima.save("test_img1.png")
+        #ima.save("test_img.png")
         #cv2.imwrite("test_img.png",ima)
         #A_label = torch.Tensor(A_label.transpose(2, 0, 1)).mean(dim=0) / 255
         A_label = torch.squeeze(self.label_transform(A_label))
         #print(A_label.size())
-        #imlA = Image.fromarray(tensor2im(A_label))
+        #imal = Image.fromarray(tensor2im(A_label))
         #print("IMG LABEL DONE",imlA.shape)
-        #imlA.save("test_img_labl1.png")
+        #imal.save("test_img_label.png")
         #cv2.imwrite("test_label_img.png",imlA)
         #print("DONE")
         #sys.exit()

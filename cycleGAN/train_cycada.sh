@@ -1,4 +1,4 @@
-CUDA_VISIBLE_DEVICES=7 python train.py --name  tex_2_solid_vtemp \
+CUDA_VISIBLE_DEVICES=7 python train.py --name  tex_2_solid_v4 \
    	--resize_or_crop='resize_and_crop' \
     --loadSize=256 --fineSize=256 --which_model_netD n_layers --n_layers_D 3 \
     --which_model_netG 'unet_256' \
@@ -9,4 +9,4 @@ CUDA_VISIBLE_DEVICES=7 python train.py --name  tex_2_solid_vtemp \
     --dataset_mode unaligned_A_labeled --dataroot_A /scratch/users/aditya/data/singleview_opendr_real_ratio/train/paired \
     --dataroot_B /scratch/users/aditya/data/singleview_opendr_solid/train/paired \
     --dataroot /scratch/users/aditya/data/singleview_opendr_solid \
-    --which_direction AtoB --no_html --nThreads 16 --Mmodel_path /scratch/data/readwrite/aditya_cycada_data/checkpoints_all/cycada/runs/fcn8s/singleview_opendr_solid/color/checkpoints/iter49.pth
+    --which_direction AtoB --no_html --nThreads 16 --Mmodel_path /scratch/data/readwrite/aditya_cycada_data/checkpoints_all/cycada/runs/fcn8s/singleview_opendr_real_ratio/v5/checkpoints/iter49.pth

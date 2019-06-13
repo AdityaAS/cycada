@@ -13,7 +13,7 @@ from cycada.data.util import convert_image_by_pixformat_normalize
 
 
 @register_data_params('surreal')
-class OpenDRParams(DatasetParams):
+class SurrealParams(DatasetParams):
     num_channels = 3
     image_size = 256
     mean = 0.5
@@ -36,7 +36,7 @@ class OpenDRParams(DatasetParams):
         self.black = config["black"]
 
 @register_dataset_obj('surreal')
-class OpenDR(Dataset):
+class Surreal(Dataset):
 
     def __init__(self, name, root, params, num_cls=2, split='train', remap_labels=True, 
             transform=None, target_transform=None):

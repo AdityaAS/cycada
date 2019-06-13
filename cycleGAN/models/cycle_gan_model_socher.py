@@ -20,7 +20,7 @@ class CycleGANModel(BaseModel):
         # specify the training losses you want to print out. The program will call base_model.get_current_losses
         self.loss_names = ['D_A', 'G_A', 'cycle_A', 'idt_A', 'D_B', 'G_B', 'cycle_B', 'idt_B']
         # specify the images you want to save/display. The program will call base_model.get_current_visuals
-        visual_names_A = ['real_A', 'fake_B', 'rec_A']
+        visual_names_A = ['real_A', 'fake_B', 'rec_A', 'A_label', 'fake_BB']
         visual_names_B = ['real_B', 'fake_A', 'rec_B']
         if self.isTrain and self.opt.lambda_identity > 0.0:
             visual_names_A.append('idt_A')
@@ -156,6 +156,7 @@ class CycleGANModel(BaseModel):
         self.loss_cycle_A = self.criterionCycle(self.preds_real_A, self.A_label.cuda()) * lambda_A
         #backward cycle loss
         self.label_fake_B = torch.max(self.preds_fake_A, dim=1)[1]
+        self.fake_BB = torch.max(self.preds_fake_B, dim=1)[1]
         self.loss_cycle_B1 = self.criterionCycle(self.preds_real_B, self.label_fake_B)
         self.loss_cycle_B2 = self.criterionCycle(self.preds_fake_B, self.A_label.cuda())
         self.loss_cycle_B = (self.loss_cycle_B1 + self.loss_cycle_B2) * lambda_B
