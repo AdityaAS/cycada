@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 from sklearn.metrics import precision_recall_fscore_support as score
+from sklearn.metrics import jaccard_score
 
 def seg_accuracy(score, label, num_cls):
     _, preds = torch.max(score.data, 1)
@@ -67,9 +68,9 @@ def sklearnScores(preds, label):
     pred_label = pred_label.view(-1, 1).long().cpu().data.numpy()
     label = label.view(-1, 1).long().cpu().data.numpy()
 
-    precision, recall, fscore, support = score(label, pred_label)
-
-    return precision, recall, fscore, support
+    precision, recall, fscore, support = score(label, pred_label, average='binary')
+    iou = jaccard_score(label, pred_label, average='binary')
+    return precision, recall, fscore, support, iou
 
 
 

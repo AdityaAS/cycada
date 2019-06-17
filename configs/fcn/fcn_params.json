@@ -1,5 +1,6 @@
 {
 	"phase" : "train",
+	"data_type" : "surreal",
 	"dataset": "surreal",
 	"datadir": "/scratch/users/aditya/adult/SURREAL/surreal/download/SURREAL/data/cmu",
 	"batch_size": 16,

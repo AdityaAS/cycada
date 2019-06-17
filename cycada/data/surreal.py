@@ -12,6 +12,7 @@ import cv2
 from cycada.data.util import convert_image_by_pixformat_normalize
 import multiprocessing as mp
 from joblib import Parallel, delayed
+
 @register_data_params('surreal')
 class SurrealParams(DatasetParams):
     num_channels = 3
@@ -59,7 +60,6 @@ class SurrealLoader(Dataset):
         self.fraction = params.fraction if (self.split == 'train') else 1.0
         self.collect_ids()
         
-
     def get_subject_data(self, subjectpath):
         imagepath = join(subjectpath, 'images')
         imagesubjects = glob(join(imagepath, '*'))
@@ -123,7 +123,7 @@ class SurrealLoader(Dataset):
         img = torch.Tensor(convert_image_by_pixformat_normalize(img))
 
         #WARNING: target must be made up of 0s and 1s only!
-        target = torch.Tensor(target.transpose(2, 0, 1)).mean(dim=0) / 255
+        target = torch.Tensor(target.transpose(2, 0, 1)).mean(dim=0)
 
         return img, target
 
