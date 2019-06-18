@@ -18,6 +18,9 @@ def CreateDataset(opt):
     elif opt.dataset_mode == 'unaligned':
         from data.unaligned_dataset import UnalignedDataset
         dataset = UnalignedDataset()
+    elif opt.dataset_mode == 'unaligned_test':
+        from data.unaligned_dataset_test import UnalignedDataset_test
+        dataset = UnalignedDataset_test()
     elif opt.dataset_mode == 'single':
         from data.single_dataset import SingleDataset
         dataset = SingleDataset()

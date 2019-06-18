@@ -136,9 +136,9 @@ class CycleGANModel(BaseModel):
         # Backward cycle loss
         self.loss_cycle_B = self.criterionCycle(self.rec_B, self.real_B) * lambda_B * .5 
         # Forward cycle loss
-        self.loss_ssim_A = self.ssimLoss(self.rec_A, self.real_A) * lambda_A * .5
+        self.loss_ssim_A = self.ssimLoss(self.fake_B, self.real_A)
         # Backward cycle loss
-        self.loss_ssim_B = self.ssimLoss(self.rec_B, self.real_B) * lambda_B * .5
+        self.loss_ssim_B = self.ssimLoss(self.fake_A, self.real_B)
         # combined loss
         if not self.opt.ssim:
             self.loss_ssim_A, self.loss_ssim_B = 0, 0

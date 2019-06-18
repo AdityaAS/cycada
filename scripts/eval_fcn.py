@@ -24,7 +24,7 @@ from cycada.data.usps import USPS
 from cycada.data.color2blk import Color2Blk
 from cycada.data.blk import Blk
 
-from cycada.metrics import IoU, recall
+from cycada.metrics import IoU, recall, sklearnScores
 
 def fmt_array(arr, fmt=','):
     strs = ['{:.3f}'.format(x) for x in arr]
@@ -49,8 +49,22 @@ def norm(tensor):
 
 def mxAxis(tensor):
     _, indices = torch.max(tensor, 0)
-    import pdb;pdb.set_trace()
     return indices
+
+def saveImg(im ,label, score, name):
+    im = np.uint8(norm(im[0]).permute(1, 2, 0).cpu().data.numpy()*255)
+    label = np.uint8(label[0].cpu().data.numpy()*255)
+    label3 = np.zeros((label.shape[0], label.shape[1], 3))
+    for i in range(3):
+        label3[:,:,i] = label
+    score = np.uint8(mxAxis(score[0]).cpu().data.numpy()*255)
+    score3 = np.zeros((label.shape[0], label.shape[1], 3))
+    for i in range(3):
+        score3[:,:,i] = score
+    
+    out = Image.fromarray(np.uint8(np.concatenate([im, score3, label3], axis=1)))
+    
+    out.save(name)
 
 @click.command()
 @click.option('--path', type=click.Path(exists=True))
@@ -59,16 +73,18 @@ def mxAxis(tensor):
 @click.option('--datadir', default='/home/users/aditya/data/', type=click.Path(exists=True))
 @click.option('--model', default='fcn8s', type=click.Choice(models.keys()))
 @click.option('--num_cls', default=2)
+@click.option('--mode', default='test')
 
-def main(path, dataset, datadir, model, num_cls):
+
+def main(path, dataset, data_type, datadir, model, num_cls, mode):
     net = get_model(model, num_cls=num_cls)
     net.load_state_dict(torch.load(path))
     net.eval()
-    ds = get_fcn_dataset(dataset, data_type, os.path.join(datadir, dataset), split='test')
+    ds = get_fcn_dataset(dataset, data_type, os.path.join(datadir, dataset), split=mode)
     classes = ds.num_cls
     collate_fn = torch.utils.data.dataloader.default_collate
     
-    loader = torch.utils.data.DataLoader(ds,  num_workers=8, batch_size=16, shuffle=False, pin_memory=True, collate_fn=collate_fn)
+    loader = torch.utils.data.DataLoader(ds,  num_workers=0, batch_size=16, shuffle=False, pin_memory=True, collate_fn=collate_fn)
 
     intersections = np.zeros(num_cls)
     unions = np.zeros(num_cls)
@@ -85,6 +101,12 @@ def main(path, dataset, datadir, model, num_cls):
         print('Empty data loader')
         return
     iterations = tqdm(iter(loader))
+
+    folderPath = '/'.join(path.split('/')[:-1]) + '/' + path.split('/')[-1].split('.')[0]
+
+    os.makedirs(folderPath + '_worst_10', exist_ok=True)
+    os.makedirs(folderPath + '_best_10', exist_ok=True)
+
     for i, (im, label) in enumerate(iterations):
 
         im = make_variable(im, requires_grad=False)
@@ -95,17 +117,6 @@ def main(path, dataset, datadir, model, num_cls):
         iou = IoU(p, label)
         rc = recall(p, label)
         pr, rc, fs, _ = sklearnScores(p, label)
-
-        if i% int(len(iterations)/15) == 0:
-
-            im = Image.fromarray(np.uint8(norm(im[0]).permute(1, 2, 0).cpu().data.numpy()*255))
-            label = Image.fromarray(np.uint8(label[0].cpu().data.numpy()*255))
-            score = Image.fromarray(np.uint8(mxAxis(score[0]).cpu().data.numpy()*255))
-            
-            im.save("img_" + str(i) + ".png")
-            # label.save("img_lbl_" + str(i) + ".png")
-            score.save("img_sc_" + str(i) + ".png")
-        
 
         ious.append(iou.item())
 
@@ -118,10 +129,31 @@ def main(path, dataset, datadir, model, num_cls):
         print("precision: ",np.mean(precisions))
         print("f1: ",np.mean(fscores))
 
-        #print(','.join(num_cls))
-    #print(fmt_array(iu))
-    #print(np.nanmean(iu), fwIU, acc_overall, np.nanmean(acc_percls))
-    print(np.argmax(ious), np.argmin(ious))  
+    # Max, Min 10
+    mx = list(np.argsort(ious)[-10:])
+    mn = list(np.argsort(ious)[:10])
 
+    iterations = tqdm(iter(loader))
+    for i, (im, label) in enumerate(iterations):
+
+        if i in mx:
+
+            im = make_variable(im, requires_grad=False)
+            label = make_variable(label, requires_grad=False)
+            p = net(im)
+            score = p
+
+            saveImg(im, label, score, folderPath + '_best_10' + "/img_" + str(i) + ".png")
+
+        if i in mn:
+
+            im = make_variable(im, requires_grad=False)
+            label = make_variable(label, requires_grad=False)
+            p = net(im)
+            score = p
+
+            saveImg(im, label, score, folderPath + '_worst_10' + "/img_" + str(i) + ".png")
+
+    print("="*100 + "\niou: ",np.mean(ious))
 if __name__ == '__main__':
     main()

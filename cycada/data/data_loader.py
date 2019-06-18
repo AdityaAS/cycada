@@ -32,7 +32,7 @@ def load_data(name, dset, batch=64, rootdir='', num_channels=3,
 def get_transform_dataset(dataset_name, rootdir, net_transform, downscale):
     #user_paths = os.environ['PYTHONPATH'].split(os.pathsep)
     transform, target_transform = get_transform2(dataset_name, net_transform, downscale)
-    return get_fcn_dataset(dataset_name, rootdir, transform=transform,
+    return get_fcn_dataset(dataset_name, "opendr" ,rootdir, transform=transform,
             target_transform=target_transform)
 
 sizes = {'cityscapes': 1024, 'gta5': 1024, 'cyclegta5': 1024,\
@@ -129,4 +129,7 @@ def get_dataset(name, data_type, rootdir, dset, image_size, num_channels, downlo
 def get_fcn_dataset(name, data_type, rootdir, **kwargs):
     params = data_params[data_type](name)
     print("WHATS THE NAME", params)
-    return dataset_obj[data_type](name, rootdir, params, **kwargs)
+    try:
+        return dataset_obj[data_type](name, rootdir, params, **kwargs)
+    except:
+        return dataset_obj['opendr'](name, rootdir, params, **kwargs)

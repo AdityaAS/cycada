@@ -20,10 +20,10 @@ discrim='discrim_score'
 ########
 # Data #
 ########
-src='tex2solid'
+src='surreal2up3d_s31_noStretch_ssim_v2'
 #'singleview_opendr_solid'
-tgt='singleview_opendr_real_ratio'
-datadir='/scratch/users/aditya/data'
+tgt='up3d_s31'
+datadir='/scratch/users/aditya'
 #'/home/users/aditya/data'
 
 resdir="results/${src}_to_${tgt}/adda_sgd/${weight_share}_nolsgan_${discrim}"
@@ -36,14 +36,16 @@ baseiter=100000
 
 num_cls=2
 
-base_model="results/tex2solid_to_singleview_opendr_real_ratio/adda_sgd/weights_shared_nolsgan_discrim_score/fcn8s/lr1e-5_crop120_ld1_lg0.1_momentum0.99/net-itercurr.pth"
+base_model="runs/fcn8s/up3d_s31/v3/checkpoints/iter30.pth"
+# base_model="runs/fcn8s/surreal_sml/v0/checkpoints/iter60.pth"
+# base_model="results/tex2solid_to_singleview_opendr_real_ratio/adda_sgd/weights_shared_nolsgan_discrim_score/fcn8s/lr1e-5_crop120_ld1_lg0.1_momentum0.99/net-itercurr.pth"
 # base_model="/scratch/users/aditya/checkpoints_all/cycada/runs/fcn8s/singleview_opendr_solid/color/checkpoints/iter49.pth"
 # base_model="/scratch/users/aditya/checkpoints_all/cycada/runs/fcn8s/singleview_opendr_solid/v5/checkpoints/iter49.pth"
 outdir="${resdir}/${model}/lr${lr}_crop${crop}_ld${lambda_d}_lg${lambda_g}_momentum${momentum}"
 
 mkdir -p $outdir
 
-targetSup=True
+targetsup=1
 
 # Run python script #
 python scripts/train_fcn_adda.py \
@@ -54,4 +56,4 @@ python scripts/train_fcn_adda.py \
     --model ${model} --weights_init=$base_model \
     --weights_shared --discrim_feat --no_lsgan \
     --max_iter ${max_iter} --crop_size ${crop} --batch ${batch} \
-    --snapshot ${snapshot} --num_cls ${num_cls} --targetSup {targetSup}
+    --snapshot ${snapshot} --num_cls ${num_cls} --targetsup ${targetsup}

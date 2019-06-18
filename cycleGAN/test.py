@@ -17,7 +17,7 @@ def mxAxis(tensor):
 
 if __name__ == '__main__':
     opt = TestOptions().parse()
-    opt.nThreads = 1   # test code only supports nThreads = 1
+    opt.nThreads = 0   # test code only supports nThreads = 1
     opt.batchSize = 1  # test code only supports batchSize = 1
     opt.serial_batches = True  # no shuffle
     opt.no_flip = True  # no flip
@@ -38,7 +38,13 @@ if __name__ == '__main__':
         visuals = model.get_current_visuals()
         img_path = model.get_image_paths()
         if i % 5 == 0:
-            print('processing (%04d)-th image... %s' % (i, img_path))
+            print('processing (%04d)-th image %04d' % (i, len(dataset)))
+        # import pdb; pdb.set_trace()
+        # for i in range(opt.batchSize):
+        #     vs2 = {}
+        #     for k, v in visuals.items():
+        #         vs2[k] = v
+        #     save_images(webpage, vs2, img_path[i], aspect_ratio=opt.aspect_ratio, width=opt.display_winsize)
         save_images(webpage, visuals, img_path, aspect_ratio=opt.aspect_ratio, width=opt.display_winsize)
 
     webpage.save()

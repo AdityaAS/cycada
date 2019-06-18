@@ -119,6 +119,7 @@ def mxAxis(tensor):
 @click.option('--weights_discrim', type=click.Path(exists=True))
 @click.option('--weights_init', type=click.Path(exists=True))
 @click.option('--model', default='fcn8s', type=click.Choice(models.keys()))
+@click.option('--targetsup', type=int, default=0)
 @click.option('--lsgan/--no_lsgan', default=False)
 @click.option('--num_cls', type=int, default=2)
 @click.option('--max_iter', default=10000)
@@ -127,13 +128,13 @@ def mxAxis(tensor):
 @click.option('--train_discrim_only', default=False)
 @click.option('--discrim_feat/--discrim_score', default=False)
 @click.option('--weights_shared/--weights_unshared', default=False)
-@click.option('--targetSup', default=False)
 
 def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weights, 
         weights_init, num_cls, lsgan, max_iter, lambda_d, lambda_g,
         train_discrim_only, weights_discrim, crop_size, weights_shared,
-        discrim_feat, half_crop, batch, model, targetSup):
+        discrim_feat, half_crop, batch, model, targetsup):
     
+    targetSup = 1
     # So data is sampled in consistent way
     np.random.seed(1337)
     torch.manual_seed(1337)
@@ -357,7 +358,7 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
                     score_t = net(im_t)
 
                 loss_supervised_s = supervised_loss(score_s, label_s, weights=weights)
-                loss_supervised_t = supervised_loss(score_t label_t, weights=weights)
+                loss_supervised_t = supervised_loss(score_t, label_t, weights=weights)
                 loss_supervised = loss_supervised_s
 
                 if targetSup:
@@ -401,12 +402,12 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
                 mIoU =  np.mean(np.maximum(intersections, 1) / np.maximum(unions, 1)) * 100
               
                 info_str += ' IoU:{:0.2f}  Recall:{:0.2f}'.format(iou_s, rc_s)
-                writer.add_scalar('metrics/acc', np.mean(accuracy), iteration)
-                writer.add_scalar('metrics/mIoU', np.mean(mIoU), iteration)
-                writer.add_scalar('metrics/RealIoU_Source', np.mean(IoU_s))
-                writer.add_scalar('metrics/RealIoU_Target', np.mean(IoU_t))
-                writer.add_scalar('metrics/RealRecall_Source', np.mean(Recall_s))
-                writer.add_scalar('metrics/RealRecall_Target', np.mean(Recall_t))
+                # writer.add_scalar('metrics/acc', np.mean(accuracy), iteration)
+                # writer.add_scalar('metrics/mIoU', np.mean(mIoU), iteration)
+                # writer.add_scalar('metrics/RealIoU_Source', np.mean(IoU_s))
+                # writer.add_scalar('metrics/RealIoU_Target', np.mean(IoU_t))
+                # writer.add_scalar('metrics/RealRecall_Source', np.mean(Recall_s))
+                # writer.add_scalar('metrics/RealRecall_Target', np.mean(Recall_t))
                 logging.info(info_str)
                 print(info_str)
 

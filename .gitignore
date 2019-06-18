@@ -14,3 +14,4 @@ results/*
 configs/*
 *.png
 *.jpg
+test_ddp.py

@@ -40,8 +40,8 @@ from tqdm import tqdm
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--load', dest='load', type=str, default=False)
-parser.add_argument('--c', dest='config', type=str, default=False)
+parser.add_argument('--load', dest='load', type=str, help="path to load model", default=False)
+parser.add_argument('--c', dest='config', type=str, help="Config file", default=False)
 args = parser.parse_args()
 
 
@@ -149,6 +149,8 @@ def main(config_path):
             # Epoch train
             print("Train Epoch!")
             for im, label in iterator:
+                if torch.isnan(im).any() or torch.isnan(label).any():
+                    import pdb; pdb.set_trace();
                 iteration += 1
                 # Clear out gradients
                 opt.zero_grad()
@@ -193,6 +195,9 @@ def main(config_path):
                 iterator.set_description("TRAIN V: {} | Epoch: {}".format(config["version"], epoch))
                 iterator.refresh()
 
+                if iteration % 20000 == 0:
+                    torch.save(net.state_dict(), join(checkpointdir, 'iter_{}_{}.pth'.format(iteration, epoch)))   
+
             # clean before test/val
             opt.zero_grad()
 
@@ -215,39 +220,39 @@ def main(config_path):
             for key in data_metric['train'].keys():
                 data_metric['train'][key] = list()
 
-            # if epoch % config["val_epoch_interval"] == 0:
-            #     net.eval()
-            #     print("Val_epoch!")
-            #     iterator = tqdm(iter(val_loader))
-            #     for im, label in iterator:
-            #         # load data/label
-            #         im = make_variable(im, requires_grad=False)
-            #         label = make_variable(label, requires_grad=False)
+            if epoch % config["val_epoch_interval"] == 0:
+                net.eval()
+                print("Val_epoch!")
+                iterator = tqdm(iter(val_loader))
+                for im, label in iterator:
+                    # load data/label
+                    im = make_variable(im, requires_grad=False)
+                    label = make_variable(label, requires_grad=False)
             
-            #         # forward pass and compute loss
-            #         preds = net(im)
-            #         loss = supervised_loss(preds, label)
-            #         iou = IoU(preds, label)
-            #         rc = recall(preds, label)
+                    # forward pass and compute loss
+                    preds = net(im)
+                    loss = supervised_loss(preds, label)
+                    iou = IoU(preds, label)
+                    rc = recall(preds, label)
 
-            #         data_metric['val']['losses'].append(loss.item())
-            #         data_metric['val']['ious'].append(iou.item())
-            #         data_metric['val']['recalls'].append(rc.item())
+                    data_metric['val']['losses'].append(loss.item())
+                    data_metric['val']['ious'].append(iou.item())
+                    data_metric['val']['recalls'].append(rc.item())
 
-            #         iterator.set_description("VAL V: {} | Epoch: {}".format(config["version"], epoch))
-            #         iterator.refresh()
+                    iterator.set_description("VAL V: {} | Epoch: {}".format(config["version"], epoch))
+                    iterator.refresh()
 
-            #     # Val visualizations
-            #     vizz = preprocess_viz(im, preds, label)
-            #     writer.add_scalar('valepoch/loss', np.mean(data_metric['val']['losses']), global_step=epoch)
-            #     writer.add_scalar('valepoch/IOU', np.mean(data_metric['val']['ious']), global_step=epoch)
-            #     writer.add_scalar('valepoch/Recall', np.mean(data_metric['val']['recalls']), global_step=epoch)
-            #     imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
-            #     writer.add_image('{}_image_data'.format('val'), imutil, global_step=epoch)
+                # Val visualizations
+                vizz = preprocess_viz(im, preds, label)
+                writer.add_scalar('valepoch/loss', np.mean(data_metric['val']['losses']), global_step=epoch)
+                writer.add_scalar('valepoch/IOU', np.mean(data_metric['val']['ious']), global_step=epoch)
+                writer.add_scalar('valepoch/Recall', np.mean(data_metric['val']['recalls']), global_step=epoch)
+                imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
+                writer.add_image('{}_image_data'.format('val'), imutil, global_step=epoch)
 
-            #     # Val epoch done. Free up lists
-            #     for key in data_metric['val'].keys():
-            #         data_metric['val'][key] = list()
+                # Val epoch done. Free up lists
+                for key in data_metric['val'].keys():
+                    data_metric['val'][key] = list()
 
             # Epoch Test
             if epoch % config["test_epoch_interval"] == 0:

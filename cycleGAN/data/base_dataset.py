@@ -20,6 +20,13 @@ def get_transform(opt):
         osize = [opt.loadSize, opt.loadSize]
         transform_list.append(transforms.Resize(osize, Image.BICUBIC))
         transform_list.append(transforms.RandomCrop(opt.fineSize))
+    elif opt.resize_or_crop == 'resize':
+        osize = [opt.loadSize, opt.loadSize]
+        transform_list.append(transforms.Resize(osize, Image.BICUBIC))
+    elif opt.resize_or_crop == 'crop_and_resize':
+        osize = [opt.loadSize, opt.loadSize]
+        transform_list.append(transforms.RandomCrop(opt.fineSize))
+        transform_list.append(transforms.Resize(osize, Image.BICUBIC))
     elif opt.resize_or_crop == 'crop':
         transform_list.append(transforms.RandomCrop(opt.fineSize))
     elif opt.resize_or_crop == 'scale_width':

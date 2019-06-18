@@ -28,7 +28,7 @@ def Crp(img):
     crop_img = img[y:y+mn, x:x+mn]
     return crop_img
 
-class UnalignedDataset(BaseDataset):
+class UnalignedDataset_test(BaseDataset):
     def initialize(self, opt):
         self.opt = opt
         # self.root = opt.dataroot
@@ -63,15 +63,16 @@ class UnalignedDataset(BaseDataset):
         B_img = cv2.imread(B_path)
 
         if A_img.shape[0] != A_img.shape[1]:
-            # A_img = Sqr(A_img)
-            A_img = Crp(A_img)
+            A_img = Sqr(A_img)
+            # A_img = Crp(A_img)
         if B_img.shape[0] != B_img.shape[1]:
-            # B_img = Sqr(B_img)
-            B_img = Crp(B_img)
+            B_img = Sqr(B_img)
+            # B_img = Crp(B_img)
 
         A_img = Image.fromarray(np.uint8(A_img))
         B_img = Image.fromarray(np.uint8(B_img))
 
+        # import pdb; pdb.set_trace()
 
         A = self.transform(A_img)
         B = self.transform(B_img)
@@ -98,4 +99,4 @@ class UnalignedDataset(BaseDataset):
         return max(self.A_size, self.B_size)
 
     def name(self):
-        return 'UnalignedDataset'
+        return 'UnalignedDataset_test'
