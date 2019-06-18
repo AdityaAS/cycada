@@ -23,7 +23,7 @@ from torch.autograd import Variable
 print(os.getcwd())
 
 import shutil
-from cycada.data.data_loader import get_fcn_dataset as get_dataset
+from cycada.data.data_loader import get_fcn_dataset as get_fcn_dataset
 from cycada.models import get_model
 from cycada.models.models import models
 from cycada.transforms import augment_collate
@@ -35,7 +35,7 @@ from cycada.tools.util import make_variable
 from cycada.loss_fns import supervised_loss
 from cycada.metrics import fast_hist
 from cycada.metrics import result_stats
-from cycada.metrics import IoU, recall
+from cycada.metrics import sklearnScores
 from tqdm import tqdm
 import argparse
 
@@ -83,8 +83,6 @@ def main(config_path):
         sys.exit(-1)
 
     writer = SummaryWriter(logdir)
-
-
     # Get appropriate model based on config parameters
     net = get_model(config["model"], num_cls=config["num_cls"])
     if args.load:
@@ -99,9 +97,9 @@ def main(config_path):
     pin_memory = config["pin_memory"]
     dataset = dataset[0]
 
-    datasets_train = get_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='train')
-    datasets_val = get_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='val')
-    datasets_test = get_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='test')
+    datasets_train = get_fcn_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='train')
+    datasets_val = get_fcn_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='val')
+    datasets_test = get_fcn_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='test')
 
     if config["weights"] is not None:
         weights = np.loadtxt(config["weights"])
@@ -154,7 +152,6 @@ def main(config_path):
                 iteration += 1
                 # Clear out gradients
                 opt.zero_grad()
-                
                 # load data/label
                 im = make_variable(im, requires_grad=False)
                 label = make_variable(label, requires_grad=False)
@@ -169,8 +166,8 @@ def main(config_path):
 
                 #acc_overall, acc_percls, iu, fwIU = result_stats(hist)
                 loss = supervised_loss(preds, label)
-                iou = IoU(preds, label)
-                rc = recall(preds, label)
+                # iou = jaccard_score(preds, label)
+                precision, rc, fscore, support, iou = sklearnScores(preds, label.type(torch.IntTensor))
                 #print(acc_overall, np.nanmean(acc_percls), np.nanmean(iu), fwIU) 
                 # backward pass
                 loss.backward()
@@ -178,17 +175,17 @@ def main(config_path):
                 # TODO: Right now this is running average, ideally we want true average. Make that change
                 # Total average will be memory intensive, let it be running average for the moment.
                 data_metric['train']['losses'].append(loss.item())
-                data_metric['train']['ious'].append(iou.item())
-                data_metric['train']['recalls'].append(rc.item())
+                data_metric['train']['ious'].append(iou)
+                data_metric['train']['recalls'].append(rc)
                 # step gradients
                 opt.step()
                 
                 # Train visualizations - each iteration
                 if iteration % config["train_tf_interval"] == 0:
                     vizz = preprocess_viz(im, preds, label)
-                    writer.add_scalar('train/loss', loss.item(), iteration)
-                    writer.add_scalar('train/IOU', iou.item(), iteration)
-                    writer.add_scalar('train/recall', rc.item(), iteration)
+                    writer.add_scalar('train/loss', loss, iteration)
+                    writer.add_scalar('train/IOU', iou, iteration)
+                    writer.add_scalar('train/recall', rc, iteration)
                     imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
                     writer.add_image('{}_image_data'.format('train'), imutil, iteration)
 
@@ -232,12 +229,11 @@ def main(config_path):
                     # forward pass and compute loss
                     preds = net(im)
                     loss = supervised_loss(preds, label)
-                    iou = IoU(preds, label)
-                    rc = recall(preds, label)
+                    precision, rc, fscore, support, iou = sklearnScores(preds, label.type(torch.IntTensor))
 
                     data_metric['val']['losses'].append(loss.item())
-                    data_metric['val']['ious'].append(iou.item())
-                    data_metric['val']['recalls'].append(rc.item())
+                    data_metric['val']['ious'].append(iou)
+                    data_metric['val']['recalls'].append(rc)
 
                     iterator.set_description("VAL V: {} | Epoch: {}".format(config["version"], epoch))
                     iterator.refresh()
@@ -267,12 +263,11 @@ def main(config_path):
                     # forward pass and compute loss
                     preds = net(im)
                     loss = supervised_loss(preds, label)
-                    iou = IoU(preds, label)
-                    rc = recall(preds, label)
+                    precision, rc, fscore, support, iou = sklearnScores(preds, label.type(torch.IntTensor))
 
                     data_metric['test']['losses'].append(loss.item())
-                    data_metric['test']['ious'].append(iou.item())
-                    data_metric['test']['recalls'].append(rc.item())
+                    data_metric['test']['ious'].append(iou)
+                    data_metric['test']['recalls'].append(rc)
 
                     iterator.set_description("TEST V: {} | Epoch: {}".format(config["version"], epoch))
                     iterator.refresh()
