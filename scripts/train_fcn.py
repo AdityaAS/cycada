@@ -152,7 +152,7 @@ def main(config_path):
     for epoch in range(config["num_epochs"]+1):
         if config["phase"] == 'train':
             net.train()
-            iterator = tqdm(iter(train_loader))
+            iterator = tqdm(iter(train_loader), postfix={"mIoU_train" : "0.00", "loss" : "inf"})
 
             # Epoch train
             print("Train Epoch!")
@@ -169,25 +169,30 @@ def main(config_path):
         
                 # forward pass and compute loss
                 preds = net(im)
+                # import pdb;pdb.set_trace()
                 #score = preds.data
                 #_, pred = torch.max(score, 1)
 
                 #hist += fast_hist(label.cpu().numpy().flatten(), pred.cpu().numpy().flatten(),num_cls)
 
                 #acc_overall, acc_percls, iu, fwIU = result_stats(hist)
-                import pdb;pdb.set_trace()
                 loss = supervised_loss(preds, label)
                 # iou = jaccard_score(preds, label)
-                precision, rc, fscore, support, iou = 0, 0, 0, 0, 0#sklearnScores(preds, label)#.type(torch.IntTensor))
+                precision, rc, fscore, support, mIoU_train = sklearnScores(preds, label)#.type(torch.IntTensor))
                 #print(acc_overall, np.nanmean(acc_percls), np.nanmean(iu), fwIU) 
                 # backward pass
+
+                iterator.set_postfix({
+                "loss": "%.4f" % loss.data.cpu().numpy(),
+                "mIoU_train": "%.4f" % mIoU_train})
+
                 loss.backward()
 
                 # TODO: Right now this is running average, ideally we want true average. Make that change
                 # Total average will be memory intensive, let it be running average for the moment.
                 data_metric['train']['losses'].append(loss.item())
-                data_metric['train']['ious'].append(iou)
-                data_metric['train']['recalls'].append(rc)
+                data_metric['train']['ious'].append(mIoU_train)
+                # data_metric['train']['recalls'].append(rc)
                 # step gradients
                 opt.step()
                 
@@ -195,8 +200,8 @@ def main(config_path):
                 if iteration % config["train_tf_interval"] == 0:
                     vizz = preprocess_viz(im, preds, label)
                     writer.add_scalar('train/loss', loss, iteration)
-                    writer.add_scalar('train/IOU', iou, iteration)
-                    writer.add_scalar('train/recall', rc, iteration)
+                    writer.add_scalar('train/IOU', mIoU_train, iteration)
+                    # writer.add_scalar('train/recall', rc, iteration)
                     imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
                     writer.add_image('{}_image_data'.format('train'), imutil, iteration)
 
@@ -213,13 +218,13 @@ def main(config_path):
             vizz = preprocess_viz(im, preds, label)
             writer.add_scalar('trainepoch/loss', np.mean(data_metric['train']['losses']), global_step=epoch)
             writer.add_scalar('trainepoch/IOU', np.mean(data_metric['train']['ious']), global_step=epoch)
-            writer.add_scalar('trainepoch/recall', np.mean(data_metric['train']['recalls']), global_step=epoch)
+            # writer.add_scalar('trainepoch/recall', np.mean(data_metric['train']['recalls']), global_step=epoch)
             imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
             writer.add_image('{}_image_data'.format('trainepoch'), imutil, global_step=epoch)
 
             print("Loss :{}".format(np.mean(data_metric['train']['losses'])))
             print("IOU :{}".format(np.mean(data_metric['train']['ious'])))
-            print("recall :{}".format(np.mean(data_metric['train']['recalls'])))
+            # print("recall :{}".format(np.mean(data_metric['train']['recalls'])))
 
             if epoch % config["checkpoint_interval"] == 0:
                 torch.save(net.state_dict(), join(checkpointdir, 'iter{}.pth'.format(epoch)))   
@@ -244,7 +249,7 @@ def main(config_path):
 
                     data_metric['val']['losses'].append(loss.item())
                     data_metric['val']['ious'].append(iou)
-                    data_metric['val']['recalls'].append(rc)
+                    # data_metric['val']['recalls'].append(rc)
 
                     iterator.set_description("VAL V: {} | Epoch: {}".format(config["version"], epoch))
                     iterator.refresh()
@@ -253,7 +258,7 @@ def main(config_path):
                 vizz = preprocess_viz(im, preds, label)
                 writer.add_scalar('valepoch/loss', np.mean(data_metric['val']['losses']), global_step=epoch)
                 writer.add_scalar('valepoch/IOU', np.mean(data_metric['val']['ious']), global_step=epoch)
-                writer.add_scalar('valepoch/Recall', np.mean(data_metric['val']['recalls']), global_step=epoch)
+                # writer.add_scalar('valepoch/Recall', np.mean(data_metric['val']['recalls']), global_step=epoch)
                 imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
                 writer.add_image('{}_image_data'.format('val'), imutil, global_step=epoch)
 
@@ -278,7 +283,7 @@ def main(config_path):
 
                     data_metric['test']['losses'].append(loss.item())
                     data_metric['test']['ious'].append(iou)
-                    data_metric['test']['recalls'].append(rc)
+                    # data_metric['test']['recalls'].append(rc)
 
                     iterator.set_description("TEST V: {} | Epoch: {}".format(config["version"], epoch))
                     iterator.refresh()
@@ -286,7 +291,7 @@ def main(config_path):
                 # Test visualizations
                 writer.add_scalar('testepoch/loss', np.mean(data_metric['test']['losses']), global_step=epoch)
                 writer.add_scalar('testepoch/IOU', np.mean(data_metric['test']['ious']), global_step=epoch)
-                writer.add_scalar('testepoch/Recall', np.mean(data_metric['test']['recalls']), global_step=epoch)
+                # writer.add_scalar('testepoch/Recall', np.mean(data_metric['test']['recalls']), global_step=epoch)
 
                 # Test epoch done. Free up lists
                 for key in data_metric['test'].keys():

@@ -90,6 +90,14 @@ class Cityscapes(data.Dataset):
             target = Image.fromarray(np.uint8(target), 'L')
         if self.target_transform is not None:
             target = self.target_transform(target)
+        # import pdb;pdb.set_trace()
+
+        # classes = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 255]
+        # new_target = torch.tensor(target.shape)
+        # for i,c in enumerate(classes):
+        #     target[target==c] = i
+
+
         return img, target
 
     def __len__(self):

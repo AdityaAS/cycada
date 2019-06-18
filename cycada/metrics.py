@@ -68,9 +68,14 @@ def sklearnScores(preds, label):
     pred_label = pred_label.view(-1, 1).long().cpu().data.numpy()
     label = label.view(-1, 1).long().cpu().data.numpy()
 
-    precision, recall, fscore, support = score(label, pred_label, average='binary')
-    iou = jaccard_score(label, pred_label, average='binary')
-    return precision, recall, fscore, support, iou
+    try:
+        precision, recall, fscore, support = score(label, pred_label, average='binary')
+        iou = jaccard_score(label, pred_label, average='binary')
+    except:
+        precision, recall, fscore, support = score(label, pred_label, average=None)
+        iou = jaccard_score(label, pred_label, average=None)
+        
+    return precision, recall, fscore, support, np.mean(iou)
 
 
 
