@@ -1,8 +1,5 @@
 {
 	"phase" : "train",
-	"data_type" : "opendr",
-	"dataset": "singleview_opendr_solid",
-	"datadir": "/home/users/aditya/data",
 	"data_type" : "surreal",
 	"dataset": "surreal",
 	"datadir": "/scratch/users/aditya/adult/SURREAL/surreal/download/SURREAL/data/cmu",
