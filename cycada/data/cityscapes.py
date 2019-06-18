@@ -58,7 +58,7 @@ class Cityscapes(data.Dataset):
         self.classes = classes
 
     def collect_ids(self):
-        im_dir = os.path.join(self.root, 'leftImg8bit', self.split)
+        im_dir = os.path.join(self.root, 'leftImg8bit_trainvaltest', self.split)
         ids = []
         for dirpath, dirnames, filenames in os.walk(im_dir):
             for filename in filenames:
@@ -67,7 +67,7 @@ class Cityscapes(data.Dataset):
         return ids
 
     def img_path(self, id):
-        fmt = 'leftImg8bit/{}/{}/{}_leftImg8bit.png'
+        fmt = 'leftImg8bit_trainvaltest/{}/{}/{}_leftImg8bit.png'
         subdir = id.split('_')[0]
         path = fmt.format(self.split, subdir, id)
         return os.path.join(self.root, path)

@@ -1,7 +1,7 @@
 gpu=0
-data="surreal_sml"
+data="cityscapes"
 datadir='/scratch/users/aditya/'
-model=fcn8s
+model=resnet
 
 crop=256
 batch=16

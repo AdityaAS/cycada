@@ -23,7 +23,7 @@ from torch.autograd import Variable
 print(os.getcwd())
 
 import shutil
-from cycada.data.data_loader import get_fcn_dataset as get_fcn_dataset
+from cycada.data.data_loader import get_fcn_dataset as get_fcn_dataset, get_transform2
 from cycada.models import get_model
 from cycada.models.models import models
 from cycada.transforms import augment_collate
@@ -97,9 +97,19 @@ def main(config_path):
     pin_memory = config["pin_memory"]
     dataset = dataset[0]
 
-    datasets_train = get_fcn_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='train')
-    datasets_val = get_fcn_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='val')
-    datasets_test = get_fcn_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='test')
+    transform = torchvision.transforms.Compose([
+        torchvision.transforms.ToTensor(),
+        torchvision.transforms.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225]),
+        ])
+
+    transform, target_transform = get_transform2(config["dataset"], transform, config['downscale'])
+    # import pdb;pdb.set_trace()
+
+    datasets_train = get_fcn_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='train', transform=transform, target_transform=target_transform)
+    datasets_val = get_fcn_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='val', transform=transform, target_transform=target_transform)
+    datasets_test = get_fcn_dataset(config["dataset"], config["data_type"], join(config["datadir"], config["dataset"]), split='test', transform=transform, target_transform=target_transform)
 
     if config["weights"] is not None:
         weights = np.loadtxt(config["weights"])
@@ -165,9 +175,10 @@ def main(config_path):
                 #hist += fast_hist(label.cpu().numpy().flatten(), pred.cpu().numpy().flatten(),num_cls)
 
                 #acc_overall, acc_percls, iu, fwIU = result_stats(hist)
+                import pdb;pdb.set_trace()
                 loss = supervised_loss(preds, label)
                 # iou = jaccard_score(preds, label)
-                precision, rc, fscore, support, iou = sklearnScores(preds, label.type(torch.IntTensor))
+                precision, rc, fscore, support, iou = 0, 0, 0, 0, 0#sklearnScores(preds, label)#.type(torch.IntTensor))
                 #print(acc_overall, np.nanmean(acc_percls), np.nanmean(iu), fwIU) 
                 # backward pass
                 loss.backward()

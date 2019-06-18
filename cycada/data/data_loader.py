@@ -127,9 +127,12 @@ def get_dataset(name, data_type, rootdir, dset, image_size, num_channels, downlo
 
 
 def get_fcn_dataset(name, data_type, rootdir, **kwargs):
-    params = data_params[data_type](name)
+    params = data_params[data_type]()
     print("WHATS THE NAME", params)
     try:
         return dataset_obj[data_type](name, rootdir, params, **kwargs)
     except:
-        return dataset_obj['opendr'](name, rootdir, params, **kwargs)
+        try:
+            return dataset_obj[data_type](rootdir, **kwargs)
+        except:
+            return dataset_obj['opendr'](name, rootdir, params, **kwargs)
