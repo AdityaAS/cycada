@@ -1,5 +1,6 @@
 *.pth
 log.txt
+*.nfs*
 output.file
 logs.txt
 results*
