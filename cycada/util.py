@@ -111,8 +111,8 @@ def preprocess_viz(image, pred, labels):
     labels = labels.cpu().numpy()
     images = image.cpu().numpy()
     im1 = rgb2gray(images[0].transpose(1, 2, 0))
-    im2 = rgb2gray(images[1].transpose(1, 2, 0))
-    final = np.stack((im1,p_maps[0],labels[0],im2,p_maps[1],labels[1]))
+    # im2 = rgb2gray(images[1].transpose(1, 2, 0))
+    final = np.stack((im1,p_maps[0],labels[0]))#,im2,p_maps[1],labels[1]))
     final = np.expand_dims(final, axis=1)
     return final
 
