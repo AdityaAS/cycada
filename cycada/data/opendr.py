@@ -87,15 +87,27 @@ class OpenDR(Dataset):
         img_path = self.img_path(index)
         label_path = self.label_path(index)
 
+    
+        #if self.bw_flag:
+        #    img = cv2.imread(img_path, 0)
+        #    img_temp = np.expand_dims(img, axis = 2)
+        #    img = np.concatenate((img_temp, img_temp, img_temp), axis=2)
+        #else:
+        #    img = cv2.imread(img_path)
+        
+        #target = cv2.imread(label_path)
+        #print(target)
         img = None
+        target = None
         if self.bw_flag:
             img = cv2.imread(img_path, 0)
             img_temp = np.expand_dims(img, axis = 2)
             img = np.concatenate((img_temp, img_temp, img_temp), axis=2)
         else:
             img = cv2.imread(img_path)
-
+            
         target = cv2.imread(label_path)
+
         img = cv2.resize(img, self.size)
         target = cv2.resize(target, self.size)
         # Convert to NCHW format and normalize to -1 to 1

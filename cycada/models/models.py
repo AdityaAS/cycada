@@ -11,5 +11,6 @@ def register_model(name):
 def get_model(name, num_cls=10, **args):
     net = models[name](num_cls=num_cls, **args)
     if torch.cuda.is_available():
+        print("MODEL SET ON CUDA")
         net = net.cuda()
     return net

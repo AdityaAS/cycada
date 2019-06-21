@@ -1,11 +1,14 @@
 import gzip
+import os
 import os.path
-
+from os.path import join
 from urllib.parse import urljoin
 import numpy as np
 from PIL import Image
 from torch.utils import data
-
+from torchvision import transforms
+import json
+import torch
 # Within package imports
 from .data_loader import register_dataset_obj, register_data_params
 from . import util
@@ -23,6 +26,21 @@ class USPSParams(DatasetParams):
     mean = 0.5
     std = 0.5
     num_cls      = 10
+    transform = transforms.Compose([transforms.Pad(6),transforms.ToTensor()])
+    target_transform = torch.from_numpy
+
+    def __init__(self, name):
+        config = None
+        print("PARAM: {}".format(os.getcwd()))
+        with open(join("dataset_configs", name+".json"), 'r') as f:
+            config = json.load(f)
+        self.num_channels = config["num_channels"]
+        self.image_size = config["image_size"]
+        self.mean = config["mean"]
+        self.num_cls = config["num_cls"]
+        self.fraction = config["fraction"]
+        #self.target_transform = config["target_transform"]
+        self.black = config["black"]
 
 @register_dataset_obj('usps')
 class USPS(data.Dataset):
@@ -39,19 +57,21 @@ class USPS(data.Dataset):
         'test': 'zip.test.gz'
         }
 
-    params = USPSParams()
+    #params = USPSParams()
+    params = None
 
-    def __init__(self, root, train=True, transform=None, target_transform=None,
-            download=False):
+    def __init__(self, name, root, params, num_cls=10, split='train', transform=None, target_transform=None,
+            download=True):
         self.root = root
-        self.train = train
-        self.transform = transform
-        self.target_transform = target_transform
+        #self.train = True
+        self.transform = params.transform
+        self.target_transform = params.target_transform
+        self.params = params
 	
         if download:
             self.download()
 
-        if self.train:
+        if split == 'train':
             datapath = os.path.join(self.root, self.data_files['train'])
         else:
             datapath = os.path.join(self.root, self.data_files['test'])
@@ -77,7 +97,7 @@ class USPS(data.Dataset):
         with gzip.GzipFile(path, 'r') as f:
             for line in f:
                 split = line.strip().split()
-                label = int(float(split[0]))
+                label = np.array(int(float(split[0])))
                 pixels = np.array([(float(x) + 1) / 2 for x in split[1:]]) * 255
                 num_pix = self.params.image_size
                 pixels = pixels.reshape(num_pix, num_pix).astype('uint8')
@@ -92,9 +112,11 @@ class USPS(data.Dataset):
 
         if self.transform is not None:
             img = self.transform(img)
+            #print(img.size())
 
         if self.target_transform is not None:
             target = self.target_transform(target)
+            #print(target)
 
         return img, target
 

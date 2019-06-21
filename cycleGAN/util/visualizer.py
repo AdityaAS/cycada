@@ -7,7 +7,7 @@ from . import html
 from scipy.misc import imresize
 
 # save image to the disk
-def save_images(webpage, visuals, image_path, aspect_ratio=1.0, width=256, for_cycada=True, req_label='fake_B'):
+def save_images(webpage, visuals, image_path, aspect_ratio=1.0, width=256):
     image_dir = webpage.get_image_dir()
     short_path = ntpath.basename(image_path[0])
     name = os.path.splitext(short_path)[0]
@@ -16,21 +16,19 @@ def save_images(webpage, visuals, image_path, aspect_ratio=1.0, width=256, for_c
     ims, txts, links = [], [], []
 
     for label, im_data in visuals.items():
-        #import pdb; pdb.set_trace();
-        if (for_cycada and (label == req_label)):
-            im = util.tensor2im(im_data)
-            image_name = '%s_%s.png' % (name, label)
-            save_path = os.path.join(image_dir, image_name)
-            h, w, _ = im.shape
-            if aspect_ratio > 1.0:
-                im = imresize(im, (h, int(w * aspect_ratio)), interp='bicubic')
-            if aspect_ratio < 1.0:
-                im = imresize(im, (int(h / aspect_ratio), w), interp='bicubic')
-            util.save_image(im, save_path)
+        im = util.tensor2im(im_data)
+        image_name = '%s_%s.png' % (name, label)
+        save_path = os.path.join(image_dir, image_name)
+        h, w, _ = im.shape
+        if aspect_ratio > 1.0:
+            im = imresize(im, (h, int(w * aspect_ratio)), interp='bicubic')
+        if aspect_ratio < 1.0:
+            im = imresize(im, (int(h / aspect_ratio), w), interp='bicubic')
+        util.save_image(im, save_path)
 
-            ims.append(image_name)
-            txts.append(label)
-            links.append(image_name)
+        ims.append(image_name)
+        txts.append(label)
+        links.append(image_name)
     webpage.add_images(ims, txts, links, width=width)
 
 
@@ -46,7 +44,7 @@ class Visualizer():
         if self.display_id > 0:
             import visdom
             self.ncols = opt.display_ncols
-            self.vis = visdom.Visdom(server=opt.display_server, port=opt.display_port)
+            self.vis = visdom.Visdom(env=opt.name, server=opt.display_server, port=opt.display_port)
 
         if self.use_html:
             self.web_dir = os.path.join(opt.checkpoints_dir, opt.name, 'web')

@@ -38,7 +38,7 @@ def get_transform_dataset(dataset_name, rootdir, net_transform, downscale):
 sizes = {'cityscapes': 1024, 'gta5': 1024, 'cyclegta5': 1024,\
         'singleview_opendr_solid': 256, 'singleview_blender_100k_visibility': 224,\
         'singleview_opendr_color_100k_copy': 480, 'blk': 256, 'color2blk': 256, \
-        'singleview_opendr_1tex_3bg': 480, 'surreal_sml': 256}
+        'singleview_opendr_1tex_3bg': 480, 'surreal_sml': 256, 'mnist':28, 'usps': 16}
 
 def get_orig_size(dataset_name):
     "Size of images in the dataset for relative scaling."
@@ -116,11 +116,11 @@ class DatasetParams(object):
 
 def get_dataset(name, data_type, rootdir, dset, image_size, num_channels, download=True):
     is_train = (dset == 'train')
-    print('get dataset:', name, rootdir, dset)
+    #print('get dataset:', name, rootdir, dset)
     params = data_params[data_type](name) 
     transform = get_transform(params, image_size, num_channels)
     target_transform = get_target_transform(params)
-    print(dataset_obj.keys())
+    #print(dataset_obj.keys())
     return dataset_obj[data_type](name, rootdir, params, train=is_train, transform=transform,
             target_transform=target_transform, download=download)
 
@@ -128,5 +128,5 @@ def get_dataset(name, data_type, rootdir, dset, image_size, num_channels, downlo
 
 def get_fcn_dataset(name, data_type, rootdir, **kwargs):
     params = data_params[data_type](name)
-    print("WHATS THE NAME", params)
+    #print("WHATS THE NAME", params)
     return dataset_obj[data_type](name, rootdir, params, **kwargs)

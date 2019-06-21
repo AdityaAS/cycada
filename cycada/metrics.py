@@ -61,13 +61,13 @@ def precision(preds, label):
     return precision
 
 def sklearnScores(preds, label):
-
+    #import pdb; pdb.set_trace()
     max_vals , pred_label = torch.max(preds, dim=1)
 
     pred_label = pred_label.view(-1, 1).long().cpu().data.numpy()
     label = label.view(-1, 1).long().cpu().data.numpy()
 
-    precision, recall, fscore, support = score(label, pred_label)
+    precision, recall, fscore, support = score(label, pred_label, average='micro')
 
     return precision, recall, fscore, support
 

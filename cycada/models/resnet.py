@@ -198,9 +198,9 @@ def copy_parameter_from_resnet50(model, res50_dict):
             param = param.data
         try:
             cur_state_dict[name].copy_(param)
-            print('copied ', name)
+           #print('copied ', name)
         except:
-            print(name, ' is inconsistent!')
+            #print(name, ' is inconsistent!')
             continue
     print('copy state dict finished!')
 
