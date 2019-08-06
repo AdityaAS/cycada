@@ -3,7 +3,7 @@ import os.path
 from PIL import Image
 import torch.utils.data
 
-from cycada.data.data_loader import get_transform_dataset
+from cycada.data.data_loader import get_fcn_dataset, get_transform2
 from cycada.util import to_tensor_raw
 from cycada.transforms import RandomCrop
 from cycada.transforms import augment_collate
@@ -22,10 +22,14 @@ class AddaDataLoader(object):
         sourcedir = os.path.join(rootdir, self.dataset[0])
         targetdir = os.path.join(rootdir, self.dataset[1])
 
-        self.source = get_transform_dataset(self.dataset[0], sourcedir, 
-                net_transform, downscale) 
-        self.target = get_transform_dataset(self.dataset[1], targetdir, 
-                net_transform, downscale)
+
+        transform, target_transform = get_transform2(self.dataset[0], net_transform, downscale)
+        self.source = get_fcn_dataset(self.dataset[0], self.dataset[0] ,sourcedir, transform=transform,
+            target_transform=target_transform) 
+        
+        transform, target_transform = get_transform2(self.dataset[1], net_transform, downscale)
+        self.target = get_fcn_dataset(self.dataset[1], self.dataset[1] ,targetdir, transform=transform,
+            target_transform=target_transform) 
         
         print('Source length:', len(self.source), 'Target length:', len(self.target))
         self.n = max(len(self.source), len(self.target)) # make sure you see all images

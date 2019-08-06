@@ -22,10 +22,6 @@ from PIL import Image
 from torch.autograd import Variable
 
 from cycada.data.adda_datasets import AddaDataLoader
-from cycada.data.cyclegta5 import CycleGTA5
-from cycada.data.usps import USPS
-from cycada.data.color2blk import Color2Blk
-from cycada.data.blk import Blk
 
 from cycada.models import get_model
 from cycada.models.models import models
@@ -134,7 +130,6 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
         train_discrim_only, weights_discrim, crop_size, weights_shared,
         discrim_feat, half_crop, batch, model, targetsup):
     
-    targetSup = 1
     # So data is sampled in consistent way
     np.random.seed(1337)
     torch.manual_seed(1337)
@@ -166,7 +161,15 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
     print("GOT MODEL")
 
     odim = 1 if lsgan else 2
-    idim = num_cls if not discrim_feat else 4096
+    if not discrim_feat:
+        idim = num_cls
+    elif model == 'fcn8s':
+        idim = 4096
+    elif model == 'resnet50':
+        idim = 2048
+    else:
+        idim = 2048
+
     print('discrim_feat', discrim_feat, idim)
     print('discriminator init weights: ', weights_discrim)
 
@@ -180,9 +183,16 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
             weights_init=weights_discrim)
 
 
-    loader = AddaDataLoader(None, dataset, datadir, downscale, 
+    transform = torchvision.transforms.Compose([
+            torchvision.transforms.ToTensor(),
+            torchvision.transforms.Normalize(
+                mean=[0.485, 0.456, 0.406],
+                std=[0.229, 0.224, 0.225]),
+        ])
+
+    loader = AddaDataLoader(transform, dataset, datadir, downscale, 
             crop_size=crop_size, half_crop=half_crop,
-            batch_size=batch, shuffle=True, num_workers=2)
+            batch_size=batch, shuffle=True, num_workers=5)
     print('dataset', dataset)
 
     # Class weighted loss?
@@ -254,6 +264,8 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
             else:
                 score_s = Variable(net_src(im_s).data, requires_grad=False)
                 f_s = score_s
+            
+
             dis_score_s = discriminator(f_s)
             
             if discrim_feat:
@@ -286,7 +298,8 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
 
             # compute discriminator acc
             pred_dis = torch.squeeze(dis_pred_concat.max(1)[1])
-            dom_acc = (pred_dis == dis_label_concat).float().mean().item() 
+            # import pdb;pdb.set_trace()
+            dom_acc = (pred_dis == dis_label_concat.squeeze()).float().mean().item() 
             accuracies_dom.append(dom_acc * 100.)
 
             # add discriminator info to log
@@ -361,7 +374,7 @@ def main(output, dataset, datadir, lr, momentum, snapshot, downscale, cls_weight
                 loss_supervised_t = supervised_loss(score_t, label_t, weights=weights)
                 loss_supervised = loss_supervised_s
 
-                if targetSup:
+                if targetsup:
                     loss_supervised += loss_supervised_t
 
                 loss_supervised.backward()

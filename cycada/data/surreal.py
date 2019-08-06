@@ -13,10 +13,32 @@ from cycada.data.util import convert_image_by_pixformat_normalize
 import multiprocessing as mp
 from joblib import Parallel, delayed
 
+def Sqr(img):
+
+    mx = max(img.shape[0], img.shape[1])
+    img2 = np.zeros((mx, mx, 3))
+    try:
+        img2[int((mx - img.shape[0])/2):mx-int((mx - img.shape[0])/2), int((mx - img.shape[1])/2):mx - int((mx - img.shape[1])/2) ,:] = img
+    except:
+        try:
+            img2[int((mx - img.shape[0])/2):mx-int((mx - img.shape[0])/2), int((mx - img.shape[1])/2):-1 -int((mx - img.shape[1])/2) ,:] = img
+        except:
+            img2[int((mx - img.shape[0])/2):mx - 1-int((mx - img.shape[0])/2), int((mx - img.shape[1])/2):mx - int((mx - img.shape[1])/2) ,:] = img
+
+    return img2
+
+def Crp(img):
+
+    mn = min(img.shape[0], img.shape[1])
+    y, x = np.random.randint(img.shape[0] - mn + 1), np.random.randint(img.shape[1] - mn + 1)
+
+    crop_img = img[y:y+mn, x:x+mn]
+    return crop_img
+
 @register_data_params('surreal')
 class SurrealParams(DatasetParams):
     num_channels = 3
-    image_size = 256
+    image_size = 320#256
     mean = 0.5
     num_cls = 2
     fraction = 1.0
@@ -116,6 +138,10 @@ class SurrealLoader(Dataset):
             img = cv2.imread(img_path)
 
         target = cv2.imread(label_path)
+        img, target = Sqr(img), Sqr(target)
+
+
+
         img = cv2.resize(img, self.size)
         target = cv2.resize(target, self.size)
         # Convert to NCHW format and normalize to -1 to 1

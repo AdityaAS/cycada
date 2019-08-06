@@ -92,7 +92,7 @@ class DeconvBottleneck(nn.Module):
         return out
 
 class ResNet(nn.Module):
-    def __init__(self, downblock, upblock, num_layers, n_classes):
+    def __init__(self, downblock, upblock, num_layers, n_classes, output_last_ft=False):
         super(ResNet, self).__init__()
 
         self.transform = torchvision.transforms.Compose([
@@ -103,7 +103,7 @@ class ResNet(nn.Module):
         ])
 
         self.in_channels = 64
-
+        self.output_last_ft = output_last_ft
         self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
                                bias=False)
         self.bn1 = nn.BatchNorm2d(64)
@@ -176,17 +176,23 @@ class ResNet(nn.Module):
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
-        x = self.layer4(x)
+        last_ft = self.layer4(x)
 
-        x = self.uplayer1(x)
+        x = self.uplayer1(last_ft)
         x = self.uplayer2(x)
         x = self.uplayer3(x)
         x = self.uplayer4(x)
         x = self.uplayer_top(x)
 
-        x = self.conv1_1(x, output_size=img.size())
+        score = self.conv1_1(x, output_size=img.size())
+        last_ft = last_ft.view(x.shape[0], 2048, -1, 1)
 
-        return x
+
+        if self.output_last_ft: 
+            return score, last_ft
+        else:
+            return score
+
 
 def copy_parameter_from_resnet50(model, res50_dict):
     cur_state_dict = model.state_dict()
@@ -205,27 +211,28 @@ def copy_parameter_from_resnet50(model, res50_dict):
     print('copy state dict finished!')
 
 @register_model('resnet18')
-def resnet18(num_cls=2, pretrained=True,**kwargs):
-    model = ResNet(Bottleneck, DeconvBottleneck, [2, 2, 2, 2], num_cls)
+def resnet18(num_cls=2, pretrained=True, output_last_ft=False, **kwargs):
+    model = ResNet(Bottleneck, DeconvBottleneck, [2, 2, 2, 2], num_cls, output_last_ft=output_last_ft)
     copy_parameter_from_resnet50(model, torchvision.models.resnet18(pretrained = True).state_dict())
     return model
 
 
 @register_model('resnet34')
-def resnet34(num_cls = 2, pretrained=True, **kwargs):
-    model = ResNet(Bottleneck, DeconvBottleneck, [3, 4, 6, 3], num_cls)
+def resnet34(num_cls = 2, pretrained=True, output_last_ft=False, **kwargs):
+    model = ResNet(Bottleneck, DeconvBottleneck, [3, 4, 6, 3], num_cls, output_last_ft=output_last_ft)
     copy_parameter_from_resnet50(model, torchvision.models.resnet34(pretrained = True).state_dict())
     return model
 
 @register_model('resnet50')
-def resnet50(num_cls=2, pretrained=True, **kwargs):
-    model = ResNet(Bottleneck, DeconvBottleneck, [3, 4, 6, 3], num_cls)
+def resnet50(num_cls=2, pretrained=True, output_last_ft=False, **kwargs):
+    # import pdb; pdb.set_trace()
+    model = ResNet(Bottleneck, DeconvBottleneck, [3, 4, 6, 3], num_cls, output_last_ft=output_last_ft)
     copy_parameter_from_resnet50(model, torchvision.models.resnet50(pretrained = True).state_dict())
     return model
 
 @register_model('resnet101')
-def resnet101(num_cls=2, pretrained=True, **kwargs):
-    model = ResNet(Bottleneck, DeconvBottleneck, [3, 4, 23, 3], num_cls)
+def resnet101(num_cls=2, pretrained=True, output_last_ft=False, **kwargs):
+    model = ResNet(Bottleneck, DeconvBottleneck, [3, 4, 23, 3], num_cls, output_last_ft=output_last_ft)
     copy_parameter_from_resnet50(model, torchvision.models.resnet101(pretrained = True).state_dict())
     return model
 

@@ -43,14 +43,24 @@ sizes = {'cityscapes': 1024, 'gta5': 1024, 'cyclegta5': 1024,\
 def get_orig_size(dataset_name):
     "Size of images in the dataset for relative scaling."
     try:
-        return sizes[dataset_name]
+        params = data_params[dataset_name]()
     except:
-        print("-------- Using 256 as size -------------")
-        return 256
+        params = data_params[dataset_name](dataset_name)
+    return params.image_size
+    # try:
+    #     return sizes[dataset_name]
+    # except:
+    #     print("-------- Using 256 as size -------------")
+    #     return 256
 
 def get_transform2(dataset_name, net_transform, downscale):
     "Returns image and label transform to downscale, crop and prepare for net."
-    orig_size = get_orig_size(dataset_name)
+    try:
+        orig_size = get_orig_size(dataset_name)
+    except:
+        orig_size = 256
+
+
     transform = []
     target_transform = []
     if downscale is not None:
@@ -59,9 +69,11 @@ def get_transform2(dataset_name, net_transform, downscale):
                 transforms.Resize(orig_size // downscale,
                     interpolation=Image.NEAREST))
 
-    transform.extend([transforms.Resize(orig_size), net_transform]) 
-    target_transform.extend([transforms.Resize(orig_size, interpolation=Image.NEAREST),
+    transform.extend([transforms.Resize((orig_size,orig_size)), net_transform]) 
+    target_transform.extend([transforms.Resize((orig_size,orig_size), interpolation=Image.NEAREST),
         to_tensor_raw]) 
+
+    # import pdb; pdb.set_trace()
 
     transform = transforms.Compose(transform)
     target_transform = transforms.Compose(target_transform)
@@ -130,9 +142,12 @@ def get_fcn_dataset(name, data_type, rootdir, **kwargs):
     try:
         params = data_params[data_type]()
     except:
-        params = data_params[data_type](name)
+        try:
+            params = data_params[data_type](name)
+        except:
+            params = data_params['opendr'](name)
 
-    print("WHATS THE NAME", params)
+    print("WHATS THE NAME {}, Params {}".format(data_type, params)) 
     try:
         return dataset_obj[data_type](name, rootdir, params, **kwargs)
     except:

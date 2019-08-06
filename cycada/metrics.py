@@ -72,10 +72,14 @@ def sklearnScores(preds, label):
         precision, recall, fscore, support = score(label, pred_label, average='binary')
         iou = jaccard_score(label, pred_label, average='binary')
     except:
+        pred_label[label==255] = 255
         precision, recall, fscore, support = score(label, pred_label, average=None)
-        iou = jaccard_score(label, pred_label, average=None)
+
+        iou = jaccard_score(label, pred_label, average=None)[:-1]
+        iou = np.sum(iou)/(len(np.unique(label)) - 1)
+
         
-    return precision, recall, fscore, support, np.mean(iou)
+    return precision, recall, fscore, support, iou
 
 
 

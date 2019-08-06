@@ -127,10 +127,10 @@ def main(config_path):
                                             collate_fn=collate_fn,
                                             pin_memory=pin_memory)
 
-    # val_loader = torch.utils.data.DataLoader(datasets_val, batch_size=config["batch_size"],
-    #                                         shuffle=True, num_workers=num_workers,
-    #                                         collate_fn=collate_fn,
-    #                                         pin_memory=pin_memory)
+    val_loader = torch.utils.data.DataLoader(datasets_val, batch_size=config["batch_size"],
+                                            shuffle=True, num_workers=num_workers,
+                                            collate_fn=collate_fn,
+                                            pin_memory=pin_memory)
 
     test_loader = torch.utils.data.DataLoader(datasets_test, batch_size=config["batch_size"],
                                             shuffle=False, num_workers=num_workers,
@@ -197,13 +197,12 @@ def main(config_path):
                 opt.step()
                 
                 # Train visualizations - each iteration
-                if iteration % config["train_tf_interval"] == 0:
-                    vizz = preprocess_viz(im, preds, label)
-                    writer.add_scalar('train/loss', loss, iteration)
-                    writer.add_scalar('train/IOU', mIoU_train, iteration)
-                    # writer.add_scalar('train/recall', rc, iteration)
-                    imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
-                    writer.add_image('{}_image_data'.format('train'), imutil, iteration)
+                # if iteration % config["train_tf_interval"] == 0:
+                #     vizz = preprocess_viz(im, preds, label)
+                #     writer.add_scalar('train/loss', loss, iteration)
+                #     writer.add_scalar('train/IOU', mIoU_train, iteration)
+                #     imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
+                #     writer.add_image('{}_image_data'.format('train'), imutil, iteration)
 
                 iterator.set_description("TRAIN V: {} | Epoch: {}".format(config["version"], epoch))
                 iterator.refresh()
@@ -233,69 +232,69 @@ def main(config_path):
             for key in data_metric['train'].keys():
                 data_metric['train'][key] = list()
 
-            if epoch % config["val_epoch_interval"] == 0:
-                net.eval()
-                print("Val_epoch!")
-                iterator = tqdm(iter(val_loader))
-                for im, label in iterator:
-                    # load data/label
-                    im = make_variable(im, requires_grad=False)
-                    label = make_variable(label, requires_grad=False)
+            # if epoch % config["val_epoch_interval"] == 0:
+            #     net.eval()
+            #     print("Val_epoch!")
+            #     iterator = tqdm(iter(val_loader))
+            #     for im, label in iterator:
+            #         # load data/label
+            #         im = make_variable(im, requires_grad=False)
+            #         label = make_variable(label, requires_grad=False)
             
-                    # forward pass and compute loss
-                    preds = net(im)
-                    loss = supervised_loss(preds, label)
-                    precision, rc, fscore, support, iou = sklearnScores(preds, label.type(torch.IntTensor))
+            #         # forward pass and compute loss
+            #         preds = net(im)
+            #         loss = supervised_loss(preds, label)
+            #         precision, rc, fscore, support, iou = sklearnScores(preds, label.type(torch.IntTensor))
 
-                    data_metric['val']['losses'].append(loss.item())
-                    data_metric['val']['ious'].append(iou)
-                    # data_metric['val']['recalls'].append(rc)
+            #         data_metric['val']['losses'].append(loss.item())
+            #         data_metric['val']['ious'].append(iou)
+            #         # data_metric['val']['recalls'].append(rc)
 
-                    iterator.set_description("VAL V: {} | Epoch: {}".format(config["version"], epoch))
-                    iterator.refresh()
+            #         iterator.set_description("VAL V: {} | Epoch: {}".format(config["version"], epoch))
+            #         iterator.refresh()
 
-                # Val visualizations
-                vizz = preprocess_viz(im, preds, label)
-                writer.add_scalar('valepoch/loss', np.mean(data_metric['val']['losses']), global_step=epoch)
-                writer.add_scalar('valepoch/IOU', np.mean(data_metric['val']['ious']), global_step=epoch)
-                # writer.add_scalar('valepoch/Recall', np.mean(data_metric['val']['recalls']), global_step=epoch)
-                imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
-                writer.add_image('{}_image_data'.format('val'), imutil, global_step=epoch)
+            #     # Val visualizations
+            #     vizz = preprocess_viz(im, preds, label)
+            #     writer.add_scalar('valepoch/loss', np.mean(data_metric['val']['losses']), global_step=epoch)
+            #     writer.add_scalar('valepoch/IOU', np.mean(data_metric['val']['ious']), global_step=epoch)
+            #     # writer.add_scalar('valepoch/Recall', np.mean(data_metric['val']['recalls']), global_step=epoch)
+            #     imutil = vutils.make_grid(torch.from_numpy(vizz), nrow=3, normalize=True, scale_each=True)
+            #     writer.add_image('{}_image_data'.format('val'), imutil, global_step=epoch)
 
-                # Val epoch done. Free up lists
-                for key in data_metric['val'].keys():
-                    data_metric['val'][key] = list()
+            #     # Val epoch done. Free up lists
+            #     for key in data_metric['val'].keys():
+            #         data_metric['val'][key] = list()
 
-            # Epoch Test
-            if epoch % config["test_epoch_interval"] == 0:
-                net.eval()
-                print("Test_epoch!")
-                iterator = tqdm(iter(test_loader))
-                for im, label in iterator:
-                    # load data/label
-                    im = make_variable(im, requires_grad=False)
-                    label = make_variable(label, requires_grad=False)
+            # # Epoch Test
+            # if epoch % config["test_epoch_interval"] == 0:
+            #     net.eval()
+            #     print("Test_epoch!")
+            #     iterator = tqdm(iter(test_loader))
+            #     for im, label in iterator:
+            #         # load data/label
+            #         im = make_variable(im, requires_grad=False)
+            #         label = make_variable(label, requires_grad=False)
 
-                    # forward pass and compute loss
-                    preds = net(im)
-                    loss = supervised_loss(preds, label)
-                    precision, rc, fscore, support, iou = sklearnScores(preds, label.type(torch.IntTensor))
+            #         # forward pass and compute loss
+            #         preds = net(im)
+            #         loss = supervised_loss(preds, label)
+            #         precision, rc, fscore, support, iou = sklearnScores(preds, label.type(torch.IntTensor))
 
-                    data_metric['test']['losses'].append(loss.item())
-                    data_metric['test']['ious'].append(iou)
-                    # data_metric['test']['recalls'].append(rc)
+            #         data_metric['test']['losses'].append(loss.item())
+            #         data_metric['test']['ious'].append(iou)
+            #         # data_metric['test']['recalls'].append(rc)
 
-                    iterator.set_description("TEST V: {} | Epoch: {}".format(config["version"], epoch))
-                    iterator.refresh()
+            #         iterator.set_description("TEST V: {} | Epoch: {}".format(config["version"], epoch))
+            #         iterator.refresh()
 
-                # Test visualizations
-                writer.add_scalar('testepoch/loss', np.mean(data_metric['test']['losses']), global_step=epoch)
-                writer.add_scalar('testepoch/IOU', np.mean(data_metric['test']['ious']), global_step=epoch)
-                # writer.add_scalar('testepoch/Recall', np.mean(data_metric['test']['recalls']), global_step=epoch)
+            #     # Test visualizations
+            #     writer.add_scalar('testepoch/loss', np.mean(data_metric['test']['losses']), global_step=epoch)
+            #     writer.add_scalar('testepoch/IOU', np.mean(data_metric['test']['ious']), global_step=epoch)
+            #     # writer.add_scalar('testepoch/Recall', np.mean(data_metric['test']['recalls']), global_step=epoch)
 
-                # Test epoch done. Free up lists
-                for key in data_metric['test'].keys():
-                    data_metric['test'][key] = list()
+            #     # Test epoch done. Free up lists
+            #     for key in data_metric['test'].keys():
+            #         data_metric['test'][key] = list()
 
             if config["step"] is not None and epoch % config["step"] == 0:
                 logging.info('Decreasing learning rate by 0.1 factor')

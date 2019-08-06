@@ -114,7 +114,7 @@ class VGG16_FCN8s(nn.Module):
                 intermediates[fts_to_save[i]] = x
        
         ft_to_save = 5 # Dropout before classifier
-        last_ft = {}
+
         for i, module in enumerate(self.vgg_head):
             x = module(x)
             if i == ft_to_save:
