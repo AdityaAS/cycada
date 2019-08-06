@@ -6,10 +6,11 @@ Input:
 '''
 
 def supervised_loss(score, label, weights=None):
-    loss_fn_ = torch.nn.NLLLoss(weight=weights, size_average=True, 
-            ignore_index=255)
+    loss_fn_ = torch.nn.NLLLoss(weight=weights, ignore_index=255, reduction='none')
     label = label.long()
     loss = loss_fn_(F.log_softmax(score, dim=1), label)
+    loss = loss.mean((1,2))
+    #print(loss.size())
     return loss
    
 def discriminator_loss(score, target_val, lsgan=False):

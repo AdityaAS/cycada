@@ -1,6 +1,7 @@
 import torch
 import sys
 import itertools
+import torch.nn as nn
 from util.image_pool import ImagePool
 from .base_model import BaseModel
 from . import networks
@@ -15,12 +16,13 @@ class CycleGANModel(BaseModel):
         return 'CycleGANModel'
 
     def initialize(self, opt):
+        #import pdb; pdb.set_trace();
         BaseModel.initialize(self, opt)
 
         # specify the training losses you want to print out. The program will call base_model.get_current_losses
         self.loss_names = ['D_A', 'G_A', 'cycle_A', 'idt_A', 'D_B', 'G_B', 'cycle_B', 'idt_B']
         # specify the images you want to save/display. The program will call base_model.get_current_visuals
-        visual_names_A = ['real_A', 'fake_B', 'rec_A', 'A_label', 'fake_BB']
+        visual_names_A = ['real_A', 'fake_B', 'rec_A']
         visual_names_B = ['real_B', 'fake_A', 'rec_B']
         if self.isTrain and self.opt.lambda_identity > 0.0:
             visual_names_A.append('idt_A')
@@ -66,19 +68,28 @@ class CycleGANModel(BaseModel):
             self.fake_B_pool = ImagePool(opt.pool_size)
             # define loss functions
             self.criterionGAN = networks.GANLoss(use_lsgan=not opt.no_lsgan).to(self.device)
-            self.criterionCycle = supervised_loss
+            self.criterionCycle = nn.CrossEntropyLoss()#supervised_loss
             self.criterionIdt = torch.nn.L1Loss()
             # initialize optimizers
-            self.optimizer_G = torch.optim.Adam(itertools.chain(self.netG_A.parameters(), self.netG_B.parameters()),
-                                                lr=opt.lr, betas=(opt.beta1, 0.999))
-            self.optimizer_D = torch.optim.Adam(itertools.chain(self.netD_A.parameters(), self.netD_B.parameters()),
-                                                lr=opt.lr, betas=(opt.beta1, 0.999))
-            self.optimizer_M = torch.optim.Adam(itertools.chain(self.netM_A.parameters(), self.netM_B.parameters()),
-                                                lr=opt.lr, betas=(opt.beta1, 0.999))
+            #self.optimizer_G = torch.optim.Adam(itertools.chain(self.netG_A.parameters(), self.netG_B.parameters(), self.netM_A.parameters(), self.netM_B.parameters()),\
+            #                                    lr=opt.lr, betas=(opt.beta1, 0.999))
+            #self.optimizer_D = torch.optim.Adam(itertools.chain(self.netD_A.parameters(), self.netD_B.parameters()),
+            #                                    lr=opt.lr, betas=(opt.beta1, 0.999))
+            #self.optimizer_M = torch.optim.Adam(itertools.chain(self.netM_A.parameters(), self.netM_B.parameters()),
+            #                                    lr=opt.lr, betas=(opt.beta1, 0.999))
+            self.optimizer_G_A = torch.optim.Adam(self.netG_A.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+            self.optimizer_G_B = torch.optim.Adam(self.netG_B.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+            self.optimizer_D_A = torch.optim.Adam(self.netD_A.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+            self.optimizer_D_B = torch.optim.Adam(self.netD_B.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+            self.optimizer_M_A = torch.optim.Adam(self.netM_A.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+            self.optimizer_M_B = torch.optim.Adam(self.netM_B.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
             self.optimizers = []
-            self.optimizers.append(self.optimizer_G)
-            self.optimizers.append(self.optimizer_D)
-            self.optimizers.append(self.optimizer_M)
+            self.optimizers.append(self.optimizer_G_A)
+            self.optimizers.append(self.optimizer_D_A)
+            self.optimizers.append(self.optimizer_M_A)
+            self.optimizers.append(self.optimizer_G_B)
+            self.optimizers.append(self.optimizer_D_B)
+            self.optimizers.append(self.optimizer_M_B)
 
     def set_input(self, input):
         AtoB = self.opt.which_direction == 'AtoB'
@@ -86,6 +97,7 @@ class CycleGANModel(BaseModel):
         self.real_B = input['B' if AtoB else 'A'].to(self.device)
         self.image_paths = input['A_paths' if AtoB else 'B_paths']
         self.A_label = input['A_label']
+        self.B_label = input['B_label']
 
     def forward(self):
         self.fake_B = self.netG_A(self.real_A)
@@ -116,6 +128,8 @@ class CycleGANModel(BaseModel):
         self.loss_D_B = self.backward_D_basic(self.netD_B, self.real_A, fake_A)
 
     def backward_G(self):
+        self.optimizer_G_A.zero_grad()
+        self.optimizer_G_B.zero_grad()
         lambda_idt = self.opt.lambda_identity
         lambda_A = self.opt.lambda_A
         lambda_B = self.opt.lambda_B
@@ -141,10 +155,18 @@ class CycleGANModel(BaseModel):
         #self.loss_cycle_B = self.criterionCycle(self.rec_B, self.real_B) * lambda_B
         # combined loss
         self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_idt_A + self.loss_idt_B
-        self.loss_G.backward(retain_graph = True)
+        self.loss_G.backward(retain_graph=True)
+        self.optimizer_G_A.step()
+        self.optimizer_G_B.step()
+
+        #combined loss
+        #self.loss_G_socher = self.loss_cycle_A + self.loss_cycle_B + self.loss_G
+        #self.loss_G_socher.backward()
+        #self.loss_G.backward()
 
     def backward_M(self):
-
+        self.optimizer_M_B.zero_grad()
+        self.optimizer_M_A.zero_grad()
         lambda_A = self.opt.lambda_A
         lambda_B = self.opt.lambda_B
 
@@ -154,35 +176,43 @@ class CycleGANModel(BaseModel):
         self.preds_fake_B = self.netM_B(self.fake_B)
         #forward cycle
         self.loss_cycle_A = self.criterionCycle(self.preds_real_A, self.A_label.cuda()) * lambda_A
+        self.loss_cycle_A.backward(retain_graph=True)
+        self.optimizer_M_A.step()
         #backward cycle loss
         self.label_fake_B = torch.max(self.preds_fake_A, dim=1)[1]
         self.fake_BB = torch.max(self.preds_fake_B, dim=1)[1]
         self.loss_cycle_B1 = self.criterionCycle(self.preds_real_B, self.label_fake_B)
         self.loss_cycle_B2 = self.criterionCycle(self.preds_fake_B, self.A_label.cuda())
         self.loss_cycle_B = (self.loss_cycle_B1 + self.loss_cycle_B2) * lambda_B
-        #combined loss
-        self.loss_G_socher = self.loss_cycle_A + self.loss_cycle_B
-        self.loss_G_socher.backward()
+        self.loss_cycle_B.backward()
+        self.optimizer_M_B.step()
 
     def optimize_parameters(self):
         # forward
         #import pdb; pdb.set_trace();
         self.forward()
-        # G_A and G_B
-        self.set_requires_grad([self.netD_A, self.netD_B, self.netM_A, self.netM_B], False)
-        self.optimizer_G.zero_grad()
-        self.backward_G()
-        self.optimizer_G.step()
-
+        
         #M_A and M_B
-        self.set_requires_grad([self.netM_A, self.netM_B], True)
-        self.optimizer_M.zero_grad()
-        self.backward_M()
-        self.optimizer_M.step()
+        #self.set_requires_grad([self.netM_A, self.netM_B], True)
+       
+
+        # G_A and G_B
+        #self.set_requires_grad([self.netD_A, self.netD_B, self.netM_A, self.netM_B], False)
+        #self.optimizer_M.zero_grad()
+        #self.optimizer_G_A.zero_grad()
+        self.backward_G()
+        #self.optimizer_G.step()
         
         # D_A and D_B
-        self.set_requires_grad([self.netD_A, self.netD_B], True)
-        self.optimizer_D.zero_grad()
+        #self.set_requires_grad([self.netD_A, self.netD_B], True)
+        self.optimizer_D_A.zero_grad()
+        self.optimizer_D_B.zero_grad()
+
         self.backward_D_A()
         self.backward_D_B()
-        self.optimizer_D.step()
+        self.optimizer_D_A.step()
+        self.optimizer_D_B.step()
+
+        #self.optimizer_M.zero_grad()
+        self.backward_M()
+        #self.optimizer_M.step()

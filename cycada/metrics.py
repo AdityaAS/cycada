@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 from sklearn.metrics import precision_recall_fscore_support as score
+from sklearn.metrics import accuracy_score
 
 def seg_accuracy(score, label, num_cls):
     _, preds = torch.max(score.data, 1)
@@ -71,7 +72,13 @@ def sklearnScores(preds, label):
 
     return precision, recall, fscore, support
 
+def accuracy(preds, labels):
 
+    max_vals , pred_label = torch.max(preds, dim=1)
+
+    pred_label = torch.squeeze(pred_label).cpu().numpy()
+    label = torch.squeeze(labels).cpu().numpy()
+    return accuracy_score(label, pred_label)
 
 def fast_hist(a, b, n):
     k = (a >= 0) & (a < n)

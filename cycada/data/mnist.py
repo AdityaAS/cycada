@@ -28,6 +28,7 @@ class MNISTParams(DatasetParams):
         self.fraction = config["fraction"]
         self.target_transform = config["target_transform"]
         self.black = config["black"]
+        self.transform = transforms.Compose([transforms.Resize((self.image_size, self.image_size)),transforms.ToTensor()])
 
 @register_dataset_obj('mnist')
 class MNIST(datasets.MNIST):

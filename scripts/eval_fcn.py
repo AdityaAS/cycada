@@ -24,7 +24,7 @@ from cycada.data.usps import USPS
 from cycada.data.color2blk import Color2Blk
 from cycada.data.blk import Blk
 
-from cycada.metrics import IoU, recall, sklearnScores
+from cycada.metrics import IoU, recall, sklearnScores, accuracy
 
 def fmt_array(arr, fmt=','):
     strs = ['{:.3f}'.format(x) for x in arr]
@@ -65,10 +65,10 @@ def main(path, dataset, datadir, data_type, model, num_cls):
     net.load_state_dict(torch.load(path))
     net.eval()
     ds = get_fcn_dataset(dataset, data_type, os.path.join(datadir, dataset), split='test')
-    classes = ds.num_cls
+    #classes = ds.num_cls
     collate_fn = torch.utils.data.dataloader.default_collate
     
-    loader = torch.utils.data.DataLoader(ds,  num_workers=8, batch_size=16, shuffle=False, pin_memory=True, collate_fn=collate_fn)
+    loader = torch.utils.data.DataLoader(ds,  num_workers=4, batch_size=16, shuffle=False, pin_memory=True, collate_fn=collate_fn)
 
     intersections = np.zeros(num_cls)
     unions = np.zeros(num_cls)
@@ -84,7 +84,9 @@ def main(path, dataset, datadir, data_type, model, num_cls):
     if len(loader) == 0:
         print('Empty data loader')
         return
+    net.eval()
     iterations = tqdm(iter(loader))
+    
     for i, (im, label) in enumerate(iterations):
 
         im = make_variable(im, requires_grad=False)
@@ -92,28 +94,29 @@ def main(path, dataset, datadir, data_type, model, num_cls):
         p = net(im)
         score = p
 
-        iou = IoU(p, label)
-        rc = recall(p, label)
+        #iou = IoU(p, label)
+        #rc = recall(p, label)
+        acc = accuracy(p, label)
         pr, rc, fs, _ = sklearnScores(p, label)
 
-        if i% int(len(iterations)/15) == 0:
+            # if i% int(len(iterations)/15) == 0:
 
-            im = Image.fromarray(np.uint8(norm(im[0]).permute(1, 2, 0).cpu().data.numpy()*255))
-            label = Image.fromarray(np.uint8(label[0].cpu().data.numpy()*255))
-            score = Image.fromarray(np.uint8(mxAxis(score[0]).cpu().data.numpy()*255))
+            #     im = Image.fromarray(np.uint8(norm(im[0]).permute(1, 2, 0).cpu().data.numpy()*255))
+            #     label = Image.fromarray(np.uint8(label[0].cpu().data.numpy()*255))
+            #     score = Image.fromarray(np.uint8(mxAxis(score[0]).cpu().data.numpy()*255))
+                
+            #     im.save("img_" + str(i) + ".png")
+            #     label.save("img_lbl_" + str(i) + ".png")
+            #     score.save("img_sc_" + str(i) + ".png")
             
-            im.save("img_" + str(i) + ".png")
-            label.save("img_lbl_" + str(i) + ".png")
-            score.save("img_sc_" + str(i) + ".png")
-        
 
-        ious.append(iou.item())
+        #ious.append(pr)
 
         recalls.append(rc)
-        precisions.append(pr)
+        precisions.append(acc)
         fscores.append(fs)
 
-        print("iou: ",np.mean(ious))
+        #print("iou: ",np.mean(ious))
         print("recalls: ",np.mean(recalls))
         print("precision: ",np.mean(precisions))
         print("f1: ",np.mean(fscores))
@@ -121,7 +124,7 @@ def main(path, dataset, datadir, data_type, model, num_cls):
         #print(','.join(num_cls))
     #print(fmt_array(iu))
     #print(np.nanmean(iu), fwIU, acc_overall, np.nanmean(acc_percls))
-    print(np.argmax(ious), np.argmin(ious))  
+    #print(np.argmax(ious), np.argmin(ious))  
 
 if __name__ == '__main__':
     main()

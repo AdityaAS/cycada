@@ -1,0 +1,9 @@
+{
+	"num_channels" : 3,
+	"image_size" : 480,
+	"mean" : 0.5,
+	"num_cls" : 2, 
+	"fraction": 1,
+	"black": false,
+	"target_transform": null
+}

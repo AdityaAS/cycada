@@ -1,12 +1,13 @@
-CUDA_VISIBLE_DEVICES=7 python train.py --name  tex_2_solid_v4 \
+CUDA_VISIBLE_DEVICES=0 python train.py --name  usps_to_mnist_v23 \
    	--resize_or_crop='resize_and_crop' \
-    --loadSize=256 --fineSize=256 --which_model_netD n_layers --n_layers_D 3 \
-    --which_model_netG 'unet_256' \
-    --model cycle_gan_socher --input_nc 3 --output_nc 3\
-    --lambda_A 1 --lambda_B 1 --lambda_identity 0 \
-    --display_id 1 --which_model_netM 'fcn8s'\
-    --no_flip --batchSize 4 \
-    --dataset_mode unaligned_A_labeled --dataroot_A /scratch/users/aditya/data/singleview_opendr_real_ratio/train/paired \
-    --dataroot_B /scratch/users/aditya/data/singleview_opendr_solid/train/paired \
-    --dataroot /scratch/users/aditya/data/singleview_opendr_solid \
-    --which_direction AtoB --no_html --nThreads 16 --Mmodel_path /scratch/data/readwrite/aditya_cycada_data/checkpoints_all/cycada/runs/fcn8s/singleview_opendr_real_ratio/v5/checkpoints/iter49.pth
+    --loadSize=28 --fineSize=28 --which_model_netD 'basic' \
+    --which_model_netG 'resnet_6blocks' \
+    --model cycle_gan_socher --input_nc 1 --output_nc 1\
+    --lambda_A 10 --lambda_B 10 --lambda_identity 2 \
+    --display_id 1 --which_model_netM 'LeNet'\
+    --no_flip --batchSize 128 \
+    --dataset_mode usps_mnist --dataroot_A /scratch/users/aditya/data/ \
+    --dataroot_B /scratch/users/aditya/data/ \
+    --dataroot /scratch/users/aditya/data/ \
+    --which_direction AtoB --no_html --nThreads 8 --Mmodel_path /home/users/aditya/sohan/cycada/runs/LeNet/usps/v102/checkpoints/iter70.pth \
+    --num_cls 10 --niter 200 --niter_decay 100 --lr 2e-4 --save_epoch_freq 20 --lr_policy 'plateau'
